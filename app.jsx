@@ -121,7 +121,7 @@ function App() {
           <StatusBar dark={!isLight(t.palette[1])} />
 
           <div style={{
-            position: "absolute", top: 32, bottom: 0, left: 0, right: 0, overflow: "auto",
+            position: "absolute", top: 32, bottom: 0, left: 0, right: 0, overflow: "auto", scrollbarWidth: "none", msOverflowStyle: "none",
           }}>
             {mode === "user" ? (
               detailId ? (

@@ -648,14 +648,6 @@ function TrendVerificationCard({ card }) {
   );
 }
 
-function reactionToneColor(tone) {
-  return {
-    green: "var(--tr-green)",
-    yellow: "var(--tr-yellow)",
-    blue: "var(--tr-blue)",
-    red: "var(--tr-red)",
-  }[tone] || "var(--tr-accent)";
-}
 
 function normalizeAudienceFilters(trend) {
   if (!trend?.audienceBreakdown) return null;
@@ -687,15 +679,17 @@ function AudienceFilterGroup({ title, options, selected, onSelect }) {
   return (
     <div>
       <div style={{ fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 800, marginBottom: 8 }}>{title}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
         {options.map(option => {
           const isSelected = selected === option;
           return (
             <button key={option} onClick={() => onSelect(option)} style={{
-              border: 0, borderRadius: 100, padding: "8px 11px",
+              border: 0, borderRadius: 100, padding: "8px 13px",
               background: isSelected ? "var(--tr-fg)" : "var(--tr-bg)",
               color: isSelected ? "var(--tr-bg)" : "var(--tr-fg)",
               fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer",
+              transition: "background 0.2s, color 0.2s, transform 0.15s",
+              transform: isSelected ? "scale(1.05)" : "scale(1)",
             }}>
               {option}
             </button>
@@ -707,24 +701,123 @@ function AudienceFilterGroup({ title, options, selected, onSelect }) {
 }
 
 function AudienceSelectionBar({ selection }) {
-  const width = Math.max(4, Math.min(100, selection.share));
+  const targetWidth = Math.max(4, Math.min(100, selection.share));
+  const [barWidth, setBarWidth] = React.useState(0);
+  const [displayNum, setDisplayNum] = React.useState(0);
+  const rafRef = React.useRef(null);
+  const fromRef = React.useRef(0);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setBarWidth(targetWidth), 30);
+    return () => clearTimeout(t);
+  }, [targetWidth]);
+
+  React.useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const from = fromRef.current;
+    const to = selection.share;
+    let t0 = null;
+    const duration = 650;
+
+    const tick = (ts) => {
+      if (!t0) t0 = ts;
+      const p = Math.min((ts - t0) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setDisplayNum(Math.round(from + (to - from) * ease));
+      if (p < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = to;
+        rafRef.current = null;
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [selection.share]);
+
   return (
-    <div style={{ marginTop: 16, padding: 15, borderRadius: 16, background: "var(--tr-bg)" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em" }}>{selection.label}</div>
-        <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.03em" }}>{selection.share}%</div>
-      </div>
+    <div style={{ marginTop: 18 }}>
       <div style={{
-        marginTop: 11, height: 14, borderRadius: 100, overflow: "hidden",
-        background: "var(--tr-card-2)",
+        padding: "18px 18px 16px", borderRadius: 18, background: "var(--tr-bg)",
+        position: "relative", overflow: "hidden",
       }}>
+        {/* 배경 glow */}
         <div style={{
-          width: `${width}%`, height: "100%", borderRadius: 100,
-          background: "var(--tr-accent)",
+          position: "absolute", top: -50, right: -30, width: 140, height: 140, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(200,255,61,0.1) 0%, transparent 70%)",
+          pointerEvents: "none",
         }} />
-      </div>
-      <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 600 }}>
-        선택한 검색층의 상대 관심 비중
+
+        {/* 레이블 + 숫자 */}
+        <div style={{
+          display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+          gap: 12, marginBottom: 18, position: "relative",
+        }}>
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tr-muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 5 }}>
+              관심 비중
+            </div>
+            <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--tr-fg)", letterSpacing: "-0.02em" }}>
+              {selection.label}
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 1, fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: "-0.05em", color: "var(--tr-accent)", lineHeight: 1 }}>
+              {displayNum}
+            </span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "var(--tr-accent)", paddingBottom: 4 }}>%</span>
+          </div>
+        </div>
+
+        {/* 바 트랙 */}
+        <div style={{ position: "relative", height: 16 }}>
+          {/* 트랙 (overflow:hidden으로 shimmer 클리핑) */}
+          <div style={{
+            position: "absolute", top: "50%", left: 0, right: 0,
+            height: 9, borderRadius: 100, transform: "translateY(-50%)",
+            background: "rgba(255,255,255,0.07)", overflow: "hidden",
+          }}>
+            {/* 채움 바 */}
+            <div style={{
+              height: "100%", borderRadius: 100,
+              width: `${barWidth}%`,
+              background: "linear-gradient(90deg, #7AE000 0%, #C8FF3D 55%, #E5FF8A 100%)",
+              transition: "width 0.7s cubic-bezier(0.34, 1.4, 0.64, 1)",
+              position: "relative",
+            }}>
+              {/* Shimmer */}
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(90deg, transparent 20%, rgba(255,255,255,0.38) 50%, transparent 80%)",
+                backgroundSize: "200% 100%",
+                animation: "tr-shimmer 2.4s ease-in-out infinite",
+              }} />
+            </div>
+          </div>
+
+          {/* 끝 도트 인디케이터 */}
+          <div style={{
+            position: "absolute", top: "50%",
+            left: `${barWidth}%`,
+            transform: "translate(-50%, -50%)",
+            width: 16, height: 16, borderRadius: "50%",
+            background: "#C8FF3D",
+            animation: "tr-glow-breathe 2s ease-in-out infinite",
+            transition: "left 0.7s cubic-bezier(0.34, 1.4, 0.64, 1)",
+            zIndex: 2,
+          }} />
+        </div>
+
+        {/* 눈금 */}
+        <div style={{
+          display: "flex", justifyContent: "space-between",
+          marginTop: 8, fontSize: 10, fontWeight: 600, color: "var(--tr-muted)",
+        }}>
+          <span>0%</span>
+          <span>50%</span>
+          <span>100%</span>
+        </div>
       </div>
     </div>
   );
@@ -767,81 +860,177 @@ function AudienceBreakdownPanel({ card }) {
   );
 }
 
-function ReactionSignalsPanel({ card }) {
-  const signals = card.reactionSignals;
-  if (!signals || !signals.segments || signals.segments.length === 0) {
-    return (
-      <div style={{ padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
-        <SectionLabel>반응 온도</SectionLabel>
-        <div style={{ marginTop: 12, fontSize: 14, color: "var(--tr-muted)", lineHeight: 1.5 }}>
-          반응 데이터 수집 전입니다.
-        </div>
+const COMMUNITY_POS = ["좋", "대박", "찍어야", "탈게", "가야", "선점", "재미", "맛있", "바로", "해야", "빠르", "영상감", "달려"];
+const COMMUNITY_NEG = ["이미", "많아", "늦", "포화", "별로", "식상", "피크", "지났", "차별화 힘", "걱정", "힘들"];
+function classifyComment(text) {
+  if (COMMUNITY_POS.some(w => text.includes(w))) return "positive";
+  if (COMMUNITY_NEG.some(w => text.includes(w))) return "negative";
+  return "neutral";
+}
+
+const TONE_COLOR = { positive: "var(--tr-green)", negative: "var(--tr-red)", neutral: "var(--tr-muted)" };
+const SUFFIX = {
+  positive: " 최근 긍정 반응이 더 늘고 있어요.",
+  negative: " 콘텐츠 포화를 우려하는 시각도 함께 올라오고 있어요.",
+  neutral:  " 다양한 시각이 공존하고 있어요.",
+};
+
+function SentimentBar({ label, value, color }) {
+  const [barW, setBarW] = React.useState(0);
+  React.useEffect(() => {
+    const t = setTimeout(() => setBarW(value), 30);
+    return () => clearTimeout(t);
+  }, [value]);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 32, fontSize: 11.5, fontWeight: 700, color: "var(--tr-muted)", flexShrink: 0 }}>{label}</div>
+      <div style={{ flex: 1, height: 7, borderRadius: 100, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+        <div style={{
+          height: "100%", borderRadius: 100, background: color,
+          width: `${barW}%`, transition: "width 0.7s cubic-bezier(0.25,1,0.5,1)",
+        }} />
       </div>
-    );
-  }
-  const firstKey = signals.defaultKey || signals.segments[0].key;
-  const [activeKey, setActiveKey] = useState(firstKey);
-  const active = signals.segments.find(s => s.key === activeKey) || signals.segments[0];
-  const total = signals.segments.reduce((sum, s) => sum + s.value, 0) || 1;
+      <div style={{ width: 30, fontSize: 12, fontWeight: 800, color, textAlign: "right", flexShrink: 0 }}>{value}%</div>
+    </div>
+  );
+}
+
+function CommunityPanel({ card }) {
+  const community = card.community;
+  if (!community) return null;
+
+  const storageKey = `community_${card.id}`;
+  const [userComments, setUserComments] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || "[]"); } catch { return []; }
+  });
+  const [inputText, setInputText] = React.useState("");
+  const [analyzing, setAnalyzing] = React.useState(false);
+  const [sentiment, setSentiment] = React.useState({ ...community.sentiment });
+  const [summaryExtra, setSummaryExtra] = React.useState("");
+
+  const handleSubmit = () => {
+    const text = inputText.trim();
+    if (!text || analyzing) return;
+    setAnalyzing(true);
+    const tone = classifyComment(text);
+    setTimeout(() => {
+      const total = sentiment.positive + sentiment.negative + sentiment.neutral + userComments.length + 1;
+      const baseTotal = community.sentiment.positive + community.sentiment.negative + community.sentiment.neutral;
+      const posCount = Math.round((community.sentiment.positive / 100) * baseTotal) + userComments.filter(c => c.tone === "positive").length + (tone === "positive" ? 1 : 0);
+      const negCount = Math.round((community.sentiment.negative / 100) * baseTotal) + userComments.filter(c => c.tone === "negative").length + (tone === "negative" ? 1 : 0);
+      const neuCount = Math.round((community.sentiment.neutral / 100) * baseTotal) + userComments.filter(c => c.tone === "neutral").length + (tone === "neutral" ? 1 : 0);
+      const newTotal = posCount + negCount + neuCount;
+      const newPos = Math.round((posCount / newTotal) * 100);
+      const newNeg = Math.round((negCount / newTotal) * 100);
+      const newNeu = 100 - newPos - newNeg;
+      setSentiment({ positive: newPos, negative: newNeg, neutral: Math.max(0, newNeu) });
+      if (!summaryExtra) setSummaryExtra(SUFFIX[tone]);
+      const newComment = { id: Date.now(), author: "나", text, tone, timeAgo: "방금 전", isMe: true };
+      const updated = [newComment, ...userComments];
+      setUserComments(updated);
+      try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
+      setInputText("");
+      setAnalyzing(false);
+    }, 1500);
+  };
+
+  const allComments = [...userComments, ...community.comments];
 
   return (
     <div>
-      <SectionLabel>반응 온도</SectionLabel>
-      <div style={{ marginTop: 12, padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
-        <div style={{
-          height: 12, borderRadius: 100, overflow: "hidden",
-          display: "flex", background: "var(--tr-bg)",
-        }}>
-          {signals.segments.map(segment => (
-            <div key={segment.key} style={{
-              width: `${Math.max(4, (segment.value / total) * 100)}%`,
-              background: reactionToneColor(segment.tone),
-            }} />
-          ))}
-        </div>
+      <SectionLabel>크리에이터 반응</SectionLabel>
+      <div style={{ marginTop: 12, borderRadius: 18, background: "var(--tr-card-2)", overflow: "hidden", position: "relative" }}>
 
-        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          {signals.segments.map(segment => {
-            const selected = active.key === segment.key;
-            return (
-              <button key={segment.key} onClick={() => setActiveKey(segment.key)} style={{
-                border: 0, borderRadius: 14, padding: "11px 12px", textAlign: "left",
-                background: selected ? "var(--tr-fg)" : "var(--tr-bg)",
-                color: selected ? "var(--tr-bg)" : "var(--tr-fg)",
-                cursor: "pointer", fontFamily: "inherit",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: 100,
-                    background: reactionToneColor(segment.tone), flexShrink: 0,
-                  }} />
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{segment.label}</span>
-                </div>
-                <div style={{ marginTop: 5, fontSize: 18, fontWeight: 700, letterSpacing: "-0.03em" }}>
-                  {segment.value}%
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ marginTop: 14, padding: "14px 15px", borderRadius: 14, background: "var(--tr-bg)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
-            <span style={{
-              width: 9, height: 9, borderRadius: 100,
-              background: reactionToneColor(active.tone),
-            }} />
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{active.label} 반응에서 많이 보이는 말</div>
+        {/* 분석 중 오버레이 */}
+        {analyzing && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 10,
+            background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
+            borderRadius: 18,
+          }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>AI가 반응을 분석하고 있어요</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  width: 7, height: 7, borderRadius: "50%", background: "var(--tr-accent)",
+                  animation: `tr-dot-bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
+            </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(active.examples || []).map((example, i) => (
-              <div key={i} style={{
-                fontSize: 13.5, lineHeight: 1.45, color: "var(--tr-fg)",
-                paddingLeft: 12, borderLeft: "2px solid var(--tr-line)",
-              }}>{example}</div>
+        )}
+
+        <div style={{ padding: 18 }}>
+          {/* 감성 바 3개 */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            <SentimentBar label="긍정" value={sentiment.positive} color="var(--tr-green)" />
+            <SentimentBar label="부정" value={sentiment.negative} color="var(--tr-red)" />
+            <SentimentBar label="중립" value={sentiment.neutral}  color="var(--tr-muted)" />
+          </div>
+
+          {/* AI 요약 */}
+          <div style={{
+            marginTop: 14, padding: "11px 14px", borderRadius: 12, background: "var(--tr-bg)",
+            fontSize: 12.5, lineHeight: 1.55, color: "var(--tr-muted)", fontStyle: "italic",
+          }}>
+            {community.summary}{summaryExtra}
+          </div>
+
+          {/* 댓글 목록 */}
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+            {allComments.map((c, i) => (
+              <div key={c.id ?? i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%", background: TONE_COLOR[c.tone] || "var(--tr-muted)",
+                  flexShrink: 0, marginTop: 5,
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--tr-fg)" }}>{c.author}</span>
+                    {c.isMe && (
+                      <span style={{
+                        fontSize: 9.5, fontWeight: 800, color: "var(--tr-accent-fg)",
+                        background: "var(--tr-accent)", borderRadius: 4, padding: "1px 5px",
+                        letterSpacing: "0.04em",
+                      }}>나</span>
+                    )}
+                    <span style={{ fontSize: 11, color: "var(--tr-muted)", marginLeft: "auto", flexShrink: 0 }}>{c.timeAgo}</span>
+                  </div>
+                  <div style={{ fontSize: 13, lineHeight: 1.45, color: "var(--tr-fg)" }}>{c.text}</div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
+
+        {/* 댓글 입력 */}
+        <div style={{
+          borderTop: "1px solid var(--tr-line)", padding: "12px 16px",
+          display: "flex", gap: 10, alignItems: "flex-end",
+          background: "var(--tr-bg)",
+        }}>
+          <textarea
+            value={inputText}
+            onChange={e => setInputText(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
+            placeholder="이 트렌드, 어떻게 생각해요?"
+            rows={1}
+            style={{
+              flex: 1, border: 0, background: "transparent", resize: "none",
+              fontSize: 13, color: "var(--tr-fg)", fontFamily: "inherit",
+              outline: "none", lineHeight: 1.5, padding: "4px 0",
+            }}
+          />
+          <button onClick={handleSubmit} disabled={!inputText.trim() || analyzing} style={{
+            border: 0, borderRadius: 10, padding: "7px 14px",
+            background: inputText.trim() && !analyzing ? "var(--tr-accent)" : "var(--tr-line)",
+            color: inputText.trim() && !analyzing ? "var(--tr-accent-fg)" : "var(--tr-muted)",
+            fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer",
+            transition: "background .2s, color .2s", flexShrink: 0,
+          }}>등록</button>
+        </div>
+
       </div>
     </div>
   );
@@ -939,7 +1128,7 @@ function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
       <div style={{ padding: "24px 20px 0", display: "flex", flexDirection: "column", gap: 28 }}>
         <TrendVerificationCard card={card} />
         <AudienceBreakdownPanel card={card} />
-        <ReactionSignalsPanel card={card} />
+        <CommunityPanel card={card} />
         <RelatedTrendsPanel card={card} />
       </div>
     </div>

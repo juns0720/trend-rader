@@ -369,14 +369,14 @@ const TREND_ENRICHMENT = {
       places: ["코스트코", "냉장 디저트 코너", "푸드 리뷰 계정"],
       compareWith: ["트레이더스 디저트", "편의점 망고젤리", "카페 망고빙수"],
     },
-    reactionSignals: {
-      summary: "반응은 긍정이 우세하지만, 구매처를 묻는 댓글도 빠르게 늘고 있어요.",
-      defaultKey: "positive",
-      segments: [
-        { key: "positive", label: "긍정", value: 54, tone: "green", examples: ["크기만 봐도 영상감이라는 반응이 많아요.", "망고 단면과 대용량 비주얼에 저장 반응이 붙고 있어요."] },
-        { key: "where", label: "구매처 질문", value: 23, tone: "yellow", examples: ["어느 코스트코 지점에 있는지 묻는 댓글이 많아요.", "냉장 코너 위치와 재고 질문이 반복돼요."] },
-        { key: "curious", label: "궁금", value: 15, tone: "blue", examples: ["맛이 푸딩인지 젤리인지 궁금하다는 반응이 보여요.", "몇 명이 먹을 수 있는지 묻는 반응이 있어요."] },
-        { key: "negative", label: "부정", value: 8, tone: "red", examples: ["너무 달 것 같다는 우려가 있어요.", "대용량이라 보관이 부담스럽다는 반응이 일부 있어요."] },
+    community: {
+      summary: "대용량 비주얼에 긍정 반응이 많고, 차별화 고민도 함께 올라오고 있어요.",
+      sentiment: { positive: 72, negative: 14, neutral: 14 },
+      comments: [
+        { id: 1, author: "짧은영상_J", text: "이거 진짜 영상감 있다 바로 코스트코 달려가야겠음", tone: "positive", timeAgo: "3분 전" },
+        { id: 2, author: "음식계정_K", text: "작년에 비슷한 거 했는데 반응 좋았음 이건 더 클 것 같아", tone: "positive", timeAgo: "21분 전" },
+        { id: 3, author: "일상브이로그", text: "1.2kg 먹방은 제목 고민이 관건이네 포인트 어떻게 잡지", tone: "neutral", timeAgo: "45분 전" },
+        { id: 4, author: "데일리_요리", text: "이미 비슷한 리뷰 좀 있어서 차별화가 필요할 듯", tone: "negative", timeAgo: "1시간 전" },
       ],
     },
   },
@@ -504,20 +504,36 @@ CARDS.forEach((card, i) => {
     places: ["네이버 검색", "인스타 해시태그", "X 음식 큐레이터", "관련 매장"],
     compareWith: CARDS.filter(c => c.id !== card.id && c.category === card.category).slice(0, 3).map(c => c.title),
   };
-  card.reactionSignals = custom.reactionSignals || {
-    summary: declining
-      ? "호기심은 남아 있지만 피로감과 비교 반응이 같이 늘고 있어요."
+  card.community = custom.community || (() => {
+    const sentiment = declining
+      ? { positive: 35, negative: 42, neutral: 23 }
       : peaking
-        ? "긍정 반응은 유지되지만, 구하기 어렵다는 질문이 함께 늘고 있어요."
-        : "긍정과 궁금증이 같이 올라오며 검색 관심도를 밀어 올리고 있어요.",
-    defaultKey: declining ? "negative" : "positive",
-    segments: [
-      { key: "positive", label: "긍정", value: declining ? 28 : peaking ? 42 : 52, tone: "green", examples: [`${card.title}을 직접 확인해보고 싶다는 반응이 보여요.`, "비주얼과 새로움에 대한 저장 반응이 있습니다."] },
-      { key: "where", label: "구매처 질문", value: declining ? 14 : peaking ? 26 : 20, tone: "yellow", examples: ["어디서 볼 수 있는지 묻는 댓글이 반복돼요.", "매장, 지점, 재고 관련 질문이 붙고 있어요."] },
-      { key: "curious", label: "궁금", value: declining ? 22 : 20, tone: "blue", examples: ["맛, 가격, 실제 크기를 궁금해하는 반응이 있어요.", "기존 제품과 무엇이 다른지 묻는 흐름이 보여요."] },
-      { key: "negative", label: "부정", value: declining ? 36 : peaking ? 12 : 8, tone: "red", examples: [declining ? "이미 많이 봤다는 피로감이 일부 보여요." : "가격이나 접근성에 대한 우려가 조금 있어요.", "호불호가 갈릴 수 있다는 반응이 있습니다."] },
-    ],
-  };
+        ? { positive: 78, negative: 8, neutral: 14 }
+        : { positive: 65, negative: 18, neutral: 17 };
+    const summary = declining
+      ? "이미 비슷한 콘텐츠가 많아 식상하다는 반응과 함께 피로감도 올라오고 있어요."
+      : peaking
+        ? "빠르게 올라오는 트렌드에 지금 바로 찍어야 한다는 긍정 반응이 압도적이에요."
+        : "긍정 반응이 우세하고 콘텐츠 아이디어를 고민하는 크리에이터들이 늘고 있어요.";
+    const posComments = [
+      { id: 1, author: "짧은영상_S", text: `${card.title} 콘텐츠 바로 만들어야겠다 영상감 있어`, tone: "positive", timeAgo: "5분 전" },
+      { id: 2, author: "음식계정_M", text: "이 타이밍 놓치면 안 될 것 같아서 오늘 바로 찍으러 감", tone: "positive", timeAgo: "28분 전" },
+    ];
+    const negComments = [
+      { id: 3, author: "일상브이로그", text: `${card.title} 비슷한 콘텐츠 이미 많지 않나 차별화가 관건인 듯`, tone: "negative", timeAgo: "52분 전" },
+      { id: 4, author: "데일리_크리에이터", text: "피크 지나면 반응 없을까봐 고민이 되긴 함", tone: "negative", timeAgo: "1시간 전" },
+    ];
+    const neuComments = [
+      { id: 3, author: "일상브이로그", text: `${card.title} 제목 어떻게 잡을지 고민 중 포인트가 뭔지`, tone: "neutral", timeAgo: "40분 전" },
+      { id: 4, author: "데일리_크리에이터", text: "지금 찍어두고 편집하면서 방향 잡으려고", tone: "neutral", timeAgo: "1시간 전" },
+    ];
+    const comments = declining
+      ? [posComments[0], negComments[0], negComments[1], neuComments[0]]
+      : peaking
+        ? [posComments[0], posComments[1], neuComments[0], negComments[0]]
+        : [posComments[0], posComments[1], neuComments[0], negComments[1]];
+    return { summary, sentiment, comments };
+  })();
 });
 
 window.TR_DATA = { CARDS, REALTIME, CATEGORIES, CANDIDATES, ACCOUNTS, BLOCKLIST, STATS };
