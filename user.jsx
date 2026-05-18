@@ -1,0 +1,883 @@
+// user.jsx — User-facing screens: onboarding, home, detail, search, bookmarks, profile
+
+const { useState, useEffect, useRef, useMemo } = React;
+
+// ─── Shared bits ──────────────────────────────────────────────
+const TIMING = {
+  green:  { dot: "var(--tr-green)",  text: "지금 타도 됨" },
+  yellow: { dot: "var(--tr-yellow)", text: "빠르면 좋음" },
+  red:    { dot: "var(--tr-red)",    text: "이미 늦은 듯" },
+};
+
+function TimingPill({ timing, size = "sm" }) {
+  const t = TIMING[timing];
+  const pad = size === "sm" ? "4px 9px 4px 8px" : "6px 12px 6px 10px";
+  const fs = size === "sm" ? 11 : 12.5;
+  return (
+    <span className="tr-pill" style={{
+      display: "inline-flex", alignItems: "center", gap: 6,
+      padding: pad, borderRadius: 100, fontSize: fs, fontWeight: 500,
+      background: "var(--tr-pill-bg)", color: "var(--tr-pill-fg)",
+      letterSpacing: "-0.01em", whiteSpace: "nowrap",
+    }}>
+      <span style={{ width: 7, height: 7, borderRadius: 100, background: t.dot, display: "inline-block" }} />
+      {t.text}
+    </span>
+  );
+}
+
+function TrafficLight({ active }) {
+  // visual representation of all 3 dots
+  const colors = ["green", "yellow", "red"];
+  return (
+    <div style={{ display: "inline-flex", gap: 3, padding: "3px 5px", background: "var(--tr-card-2)", borderRadius: 100 }}>
+      {colors.map(c => (
+        <span key={c} style={{
+          width: 8, height: 8, borderRadius: 100,
+          background: active === c ? `var(--tr-${c})` : "var(--tr-dot-off)",
+          transition: "background .2s",
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// Cover image: stylized colored block w/ display text (placeholder for real image)
+function Cover({ cover, height = 220, style }) {
+  const { hue, sat, lum, label } = cover;
+  // monochrome variant if accent toggled
+  const bg = `hsl(${hue} ${sat}% ${lum}%)`;
+  const bg2 = `hsl(${hue} ${Math.max(0, sat - 20)}% ${Math.max(20, lum - 25)}%)`;
+  return (
+    <div style={{
+      position: "relative", width: "100%", height, borderRadius: "var(--tr-card-radius)",
+      overflow: "hidden", background: `linear-gradient(155deg, ${bg} 0%, ${bg2} 100%)`,
+      ...style,
+    }}>
+      {/* halftone-ish grain */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "radial-gradient(at 30% 20%, rgba(255,255,255,.25), transparent 50%), radial-gradient(at 70% 80%, rgba(0,0,0,.2), transparent 60%)",
+        mixBlendMode: "overlay",
+      }} />
+      {/* big stamped label */}
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Space Grotesk', 'Pretendard', sans-serif",
+        fontSize: height > 200 ? 38 : 22, fontWeight: 700,
+        letterSpacing: "-0.04em", lineHeight: 0.95, textAlign: "center",
+        color: "rgba(255,255,255,.92)", whiteSpace: "pre-line",
+        textShadow: "0 2px 18px rgba(0,0,0,0.18)",
+        mixBlendMode: "screen",
+      }}>{label}</div>
+    </div>
+  );
+}
+
+// ─── Onboarding ───────────────────────────────────────────────
+function Onboarding({ onDone }) {
+  const [step, setStep] = useState(0);
+  const slides = [
+    {
+      eyebrow: "Trend Radar",
+      title: "오늘 뭐 찍지,\n매일 정해드려요.",
+      body: "음식·디저트 트렌드를 사람이 직접 큐레이션한 카드로 매일 아침 5~10개.",
+      bg: "var(--tr-accent)",
+    },
+    {
+      eyebrow: "Step 02",
+      title: "막 뜨기 시작한\n타이밍만 골랐어요.",
+      body: "신호등 라벨로 끝물·진행 중·진입 시점을 표시. 이미 늦은 트렌드는 정직하게 빨간불.",
+      bg: "var(--tr-fg)",
+    },
+    {
+      eyebrow: "Step 03",
+      title: "찍을 각도까지\n준비해뒀어요.",
+      body: "이게 뭔지, 왜 뜨는지, 3초 훅, 플랫폼별 포맷 팁까지 카드 한 장에.",
+      bg: "var(--tr-green)",
+    },
+  ];
+  const s = slides[step];
+  return (
+    <div style={{
+      position: "absolute", inset: 0, background: "var(--tr-bg)",
+      display: "flex", flexDirection: "column", zIndex: 50,
+    }}>
+      <div style={{ flex: 1, position: "relative", overflow: "hidden", margin: 16, marginBottom: 0,
+                    borderRadius: 24, background: s.bg, transition: "background .4s",
+                    color: s.bg === "var(--tr-fg)" ? "var(--tr-bg)" : "var(--tr-fg)" }}>
+        <div style={{ padding: "32px 28px", display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{
+              fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase",
+              fontWeight: 600, opacity: 0.7,
+            }}>{s.eyebrow}</div>
+            <button onClick={onDone} style={{
+              background: "transparent", border: 0, color: "inherit",
+              opacity: 0.65, fontSize: 14, fontWeight: 500, padding: "4px 0", cursor: "pointer",
+            }}>건너뛰기</button>
+          </div>
+          <div style={{ flex: 1 }} />
+          <div>
+            <h1 style={{
+              fontSize: 38, lineHeight: 1.08, fontWeight: 700, letterSpacing: "-0.035em",
+              margin: 0, whiteSpace: "pre-line",
+            }}>{s.title}</h1>
+            <p style={{ marginTop: 16, fontSize: 16, lineHeight: 1.5, opacity: 0.75, maxWidth: 320, fontWeight: 400 }}>{s.body}</p>
+          </div>
+        </div>
+        {/* radar mark */}
+        <div style={{ position: "absolute", top: 28, right: 28, opacity: 0.9 }}>
+          <IconRadar size={24} sw={1.8} />
+        </div>
+      </div>
+
+      <div style={{ padding: "24px 28px 32px", display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", gap: 6, flex: 1 }}>
+          {slides.map((_, i) => (
+            <div key={i} style={{
+              height: 4, flex: i === step ? 3 : 1, borderRadius: 100,
+              background: i === step ? "var(--tr-fg)" : "var(--tr-card-2)",
+              transition: "all .3s",
+            }} />
+          ))}
+        </div>
+        <button
+          onClick={() => step < slides.length - 1 ? setStep(step + 1) : onDone()}
+          style={{
+            background: "var(--tr-fg)", color: "var(--tr-bg)", border: 0,
+            padding: "14px 24px", borderRadius: 100, fontSize: 15, fontWeight: 600,
+            letterSpacing: "-0.01em", cursor: "pointer",
+          }}>
+          {step < slides.length - 1 ? "다음" : "시작하기"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Home ─────────────────────────────────────────────────────
+function HomeScreen({ onCard, bookmarks, toggleBookmark }) {
+  const { CARDS, REALTIME, CATEGORIES } = window.TR_DATA;
+  const [cat, setCat] = useState("전체");
+  const filtered = cat === "전체" ? CARDS : CARDS.filter(c => c.category === cat);
+
+  return (
+    <div style={{ padding: "8px 0 100px" }}>
+      {/* Header */}
+      <div style={{ padding: "8px 20px 24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 12, color: "var(--tr-muted)", letterSpacing: "-0.01em", fontWeight: 500 }}>
+            2026년 5월 18일 · 월
+          </div>
+          <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 }}>
+            오늘의 트렌드<br/>
+            <span style={{ color: "var(--tr-muted)" }}>{CARDS.length}장</span>
+          </h1>
+        </div>
+        <div style={{ display: "flex", gap: 4, marginTop: 6, color: "var(--tr-fg)" }}>
+          <button className="tr-icon-btn"><IconSearch size={20} /></button>
+          <button className="tr-icon-btn"><IconBookmark size={20} /></button>
+        </div>
+      </div>
+
+      {/* Realtime ranking strip */}
+      <RealtimeStrip data={REALTIME} />
+
+      {/* Category chips */}
+      <div style={{
+        display: "flex", gap: 8, overflowX: "auto", padding: "20px 20px 8px",
+        scrollbarWidth: "none",
+      }} className="tr-no-scrollbar">
+        {CATEGORIES.map(c => (
+          <button key={c} onClick={() => setCat(c)} style={{
+            padding: "8px 14px", borderRadius: 100, border: 0, cursor: "pointer",
+            fontSize: 13.5, fontWeight: 500, letterSpacing: "-0.01em", whiteSpace: "nowrap",
+            background: cat === c ? "var(--tr-fg)" : "var(--tr-card-2)",
+            color: cat === c ? "var(--tr-bg)" : "var(--tr-fg)",
+            transition: "all .15s",
+          }}>{c}</button>
+        ))}
+      </div>
+
+      {/* Card feed */}
+      <div style={{ padding: "12px 20px 0", display: "flex", flexDirection: "column", gap: 24 }}>
+        {filtered.map((card, i) => (
+          <CardFeedItem key={card.id} card={card} index={i}
+                        bookmarked={bookmarks.has(card.id)}
+                        onBookmark={() => toggleBookmark(card.id)}
+                        onClick={() => onCard(card.id)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RealtimeStrip({ data }) {
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? data : data.slice(0, 5);
+  return (
+    <div style={{ margin: "0 20px", padding: "14px 16px", background: "var(--tr-card-2)", borderRadius: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{
+            position: "relative", display: "inline-block", width: 8, height: 8, borderRadius: 100,
+            background: "var(--tr-red)",
+          }}>
+            <span style={{
+              position: "absolute", inset: -4, borderRadius: 100,
+              background: "var(--tr-red)", opacity: 0.3, animation: "tr-pulse 1.5s infinite",
+            }} />
+          </span>
+          <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.01em" }}>
+            실시간 트렌드 · 09:30 업데이트
+          </div>
+        </div>
+        <button onClick={() => setShowAll(s => !s)} style={{
+          background: "transparent", border: 0, fontSize: 12, color: "var(--tr-muted)",
+          fontWeight: 500, cursor: "pointer",
+        }}>{showAll ? "접기" : "전체"}</button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {shown.map((r, i) => <RealtimeRow key={r.rank} row={r} idx={i} /> )}
+      </div>
+    </div>
+  );
+}
+
+function RealtimeRow({ row, idx }) {
+  const deltaUI = () => {
+    if (row.deltaType === "up") return <span style={{ color: "var(--tr-red)", fontSize: 11, fontWeight: 600 }}>{row.delta}</span>;
+    if (row.deltaType === "down") return <span style={{ color: "var(--tr-blue)", fontSize: 11, fontWeight: 600 }}>{row.delta}</span>;
+    if (row.deltaType === "new") return <span style={{
+      background: "var(--tr-red)", color: "#fff", padding: "2px 6px", borderRadius: 4,
+      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.04em",
+    }}>NEW</span>;
+    return <span style={{ color: "var(--tr-muted)", fontSize: 11 }}>—</span>;
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", padding: "5px 0", gap: 12 }}>
+      <span style={{
+        width: 18, fontSize: 13, fontWeight: 700, letterSpacing: "-0.02em",
+        color: row.rank <= 3 ? "var(--tr-fg)" : "var(--tr-muted)",
+        fontVariantNumeric: "tabular-nums",
+      }}>{row.rank}</span>
+      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, letterSpacing: "-0.015em" }}>{row.kw}</span>
+      <span style={{ minWidth: 32, textAlign: "right" }}>{deltaUI()}</span>
+    </div>
+  );
+}
+
+function CardFeedItem({ card, index, bookmarked, onBookmark, onClick }) {
+  const style = window.TR_TWEAKS?.cardStyle || "image";
+  if (style === "minimal") return <MinimalCardItem card={card} bookmarked={bookmarked} onBookmark={onBookmark} onClick={onClick} />;
+  if (style === "compact") return <CompactCardItem card={card} bookmarked={bookmarked} onBookmark={onBookmark} onClick={onClick} />;
+  return <ImageCardItem card={card} bookmarked={bookmarked} onBookmark={onBookmark} onClick={onClick} />;
+}
+
+function ImageCardItem({ card, bookmarked, onBookmark, onClick }) {
+  return (
+    <div onClick={onClick} style={{ cursor: "pointer" }}>
+      <div style={{ position: "relative" }}>
+        <Cover cover={card.cover} height={300} />
+        {/* timing badge top-left */}
+        <div style={{ position: "absolute", top: 14, left: 14 }}>
+          <TimingPill timing={card.timing} />
+        </div>
+        {/* bookmark top-right */}
+        <button onClick={(e) => { e.stopPropagation(); onBookmark(); }} style={{
+          position: "absolute", top: 10, right: 10,
+          width: 38, height: 38, borderRadius: 100, border: 0,
+          background: "rgba(255,255,255,0.92)", color: "var(--tr-fg)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", backdropFilter: "blur(8px)",
+        }}>
+          {bookmarked ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}
+        </button>
+        {/* rank chip bottom-left */}
+        <div style={{
+          position: "absolute", bottom: 14, left: 14,
+          padding: "5px 10px", background: "rgba(0,0,0,0.55)", color: "#fff",
+          borderRadius: 100, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em",
+          backdropFilter: "blur(8px)",
+        }}>
+          #{card.rank} · {card.category}
+        </div>
+      </div>
+      <div style={{ padding: "14px 4px 0" }}>
+        <h2 style={{
+          margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2,
+        }}>{card.title}</h2>
+        <p style={{
+          margin: "8px 0 0", fontSize: 14.5, lineHeight: 1.45, color: "var(--tr-muted)",
+          letterSpacing: "-0.01em",
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+        }}>{card.what}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+          <span style={{
+            fontSize: 11, color: "var(--tr-muted)", fontWeight: 500,
+          }}>{card.publishedAt}</span>
+          <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
+          <span style={{ fontSize: 11, color: "var(--tr-muted)", fontWeight: 500 }}>
+            트렌드 점수 {card.score}
+          </span>
+          <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
+          <span style={{
+            fontSize: 11, fontWeight: 600,
+            color: card.velocity.startsWith("+") ? "var(--tr-red)" : "var(--tr-blue)",
+          }}>{card.velocity}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MinimalCardItem({ card, bookmarked, onBookmark, onClick }) {
+  return (
+    <div onClick={onClick} style={{
+      cursor: "pointer", padding: "20px 0", borderTop: "1px solid var(--tr-line)",
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 4, marginBottom: 8 }}>
+        <span style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: 12, fontWeight: 600, color: "var(--tr-muted)",
+          marginRight: 12, marginTop: 4,
+          fontVariantNumeric: "tabular-nums",
+        }}>{String(card.rank).padStart(2, "0")}</span>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2 }}>
+            {card.title}
+          </h2>
+          <p style={{
+            margin: "6px 0 0", fontSize: 14, lineHeight: 1.5, color: "var(--tr-muted)",
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+          }}>{card.what}</p>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onBookmark(); }} style={{
+          background: "transparent", border: 0, color: "var(--tr-fg)", cursor: "pointer", padding: 4,
+        }}>{bookmarked ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}</button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 36 }}>
+        <TimingPill timing={card.timing} />
+        <span style={{ fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 500 }}>{card.category}</span>
+        <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
+        <span style={{
+          fontSize: 11.5, fontWeight: 600,
+          color: card.velocity.startsWith("+") ? "var(--tr-red)" : "var(--tr-blue)",
+        }}>{card.velocity}</span>
+      </div>
+    </div>
+  );
+}
+
+function CompactCardItem({ card, bookmarked, onBookmark, onClick }) {
+  return (
+    <div onClick={onClick} style={{
+      cursor: "pointer", display: "flex", gap: 14, alignItems: "flex-start",
+    }}>
+      <div style={{ width: 96, height: 96, flexShrink: 0 }}>
+        <Cover cover={card.cover} height={96} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+          <TimingPill timing={card.timing} />
+        </div>
+        <h2 style={{
+          margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.25,
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+        }}>{card.title}</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 500 }}>
+          <span>{card.category}</span>
+          <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
+          <span style={{ color: card.velocity.startsWith("+") ? "var(--tr-red)" : "var(--tr-blue)", fontWeight: 600 }}>{card.velocity}</span>
+        </div>
+      </div>
+      <button onClick={(e) => { e.stopPropagation(); onBookmark(); }} style={{
+        background: "transparent", border: 0, color: "var(--tr-fg)", cursor: "pointer", padding: 4, marginTop: 2,
+      }}>{bookmarked ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}</button>
+    </div>
+  );
+}
+
+// ─── Card Detail ──────────────────────────────────────────────
+function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
+  const card = window.TR_DATA.CARDS.find(c => c.id === cardId);
+  if (!card) return null;
+  const bookmarked = bookmarks.has(card.id);
+  return (
+    <div style={{ paddingBottom: 100, animation: "tr-slide-in .25s ease-out" }}>
+      {/* Hero with back */}
+      <div style={{ position: "relative" }}>
+        <div style={{ height: 420, width: "100%", overflow: "hidden", position: "relative" }}>
+          <Cover cover={card.cover} height={420} style={{ borderRadius: 0 }} />
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent 40%, transparent 70%, rgba(0,0,0,0.2))",
+          }} />
+        </div>
+        <button onClick={onBack} style={{
+          position: "absolute", top: 16, left: 16, width: 40, height: 40, borderRadius: 100,
+          border: 0, background: "rgba(255,255,255,0.92)", color: "var(--tr-fg)",
+          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+          backdropFilter: "blur(8px)",
+        }}>
+          <IconBack size={20} />
+        </button>
+        <button onClick={() => toggleBookmark(card.id)} style={{
+          position: "absolute", top: 16, right: 16, width: 40, height: 40, borderRadius: 100,
+          border: 0, background: "rgba(255,255,255,0.92)", color: "var(--tr-fg)",
+          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+          backdropFilter: "blur(8px)",
+        }}>{bookmarked ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}</button>
+
+        {/* Title overlay */}
+        <div style={{ position: "absolute", left: 20, right: 20, bottom: 24, color: "#fff" }}>
+          <div style={{ marginBottom: 10 }}><TimingPill timing={card.timing} /></div>
+          <h1 style={{
+            margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1,
+            textShadow: "0 2px 16px rgba(0,0,0,0.25)",
+          }}>{card.title}</h1>
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, fontWeight: 500, opacity: 0.9 }}>
+            <span>#{card.rank}</span>
+            <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
+            <span>{card.category}</span>
+            <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
+            <span>점수 {card.score}</span>
+            <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
+            <span>{card.velocity}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content sections */}
+      <div style={{ padding: "28px 20px 0", display: "flex", flexDirection: "column", gap: 28 }}>
+        <Section label="이게 뭔데?" body={card.what} />
+        <Section label="왜 뜨는데?" body={card.why} />
+
+        {/* Hook highlight */}
+        <div>
+          <SectionLabel>3초 훅</SectionLabel>
+          <div style={{
+            marginTop: 12, padding: "20px 22px",
+            background: "var(--tr-accent)", color: "var(--tr-accent-fg)",
+            borderRadius: 18, position: "relative",
+          }}>
+            <div style={{ position: "absolute", top: 14, right: 16, opacity: 0.5 }}>
+              <IconSparkle size={16} />
+            </div>
+            <div style={{
+              fontSize: 20, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.3,
+            }}>"{card.hook}"</div>
+            <div style={{ marginTop: 10, fontSize: 11.5, opacity: 0.7, fontWeight: 500 }}>
+              영상 첫 3초 안에 던질 멘트
+            </div>
+          </div>
+        </div>
+
+        <Section label="콘텐츠 각도" body={card.angle} />
+
+        {/* Platform tips */}
+        <div>
+          <SectionLabel>플랫폼별 포맷 팁</SectionLabel>
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            {card.platform.map(p => (
+              <div key={p.p} style={{
+                padding: "14px 16px", borderRadius: 14, background: "var(--tr-card-2)",
+                display: "flex", gap: 12, alignItems: "flex-start",
+              }}>
+                <span style={{
+                  fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em",
+                  padding: "4px 8px", background: "var(--tr-fg)", color: "var(--tr-bg)",
+                  borderRadius: 4, flexShrink: 0, marginTop: 1,
+                }}>{p.p.toUpperCase()}</span>
+                <span style={{ fontSize: 14, lineHeight: 1.5, letterSpacing: "-0.01em" }}>{p.tip}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cautions */}
+        <div>
+          <SectionLabel>주의점</SectionLabel>
+          <div style={{
+            marginTop: 12, padding: "14px 16px", borderRadius: 14,
+            background: "var(--tr-card-2)", borderLeft: "3px solid var(--tr-yellow)",
+            fontSize: 14, lineHeight: 1.55, letterSpacing: "-0.01em",
+          }}>{card.caution}</div>
+        </div>
+
+        {/* Sources */}
+        <div>
+          <SectionLabel>출처</SectionLabel>
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column" }}>
+            {card.sources.map((s, i) => (
+              <a key={i} href={s.url} style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "12px 0", borderTop: i === 0 ? 0 : "1px solid var(--tr-line)",
+                color: "var(--tr-fg)", textDecoration: "none",
+              }}>
+                <SourceIcon type={s.type} />
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>{s.label}</span>
+                <IconChevronRight size={16} stroke="var(--tr-muted)" />
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer info */}
+        <div style={{
+          padding: "16px 0 8px", borderTop: "1px solid var(--tr-line)",
+          display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--tr-muted)",
+        }}>
+          <IconClock size={13} />
+          <span>발행 {card.publishedAt} · 운영자 검수 완료</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ label, body }) {
+  return (
+    <div>
+      <SectionLabel>{label}</SectionLabel>
+      <div style={{
+        marginTop: 10, fontSize: 15.5, lineHeight: 1.6, letterSpacing: "-0.01em",
+        color: "var(--tr-fg)",
+      }}>{body}</div>
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 600, letterSpacing: "0.12em",
+      textTransform: "uppercase", color: "var(--tr-muted)",
+    }}>{children}</div>
+  );
+}
+
+function SourceIcon({ type }) {
+  const size = 28;
+  const c = {
+    x: { bg: "var(--tr-fg)", fg: "var(--tr-bg)", icon: <IconX size={12} /> },
+    insta: { bg: "var(--tr-card-2)", fg: "var(--tr-fg)", icon: <IconAt size={14} /> },
+    naver: { bg: "var(--tr-green)", fg: "#fff", icon: <IconChart size={14} /> },
+  }[type] || { bg: "var(--tr-card-2)", fg: "var(--tr-fg)", icon: <IconLink size={14} /> };
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 8, background: c.bg, color: c.fg,
+      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+    }}>{c.icon}</div>
+  );
+}
+
+// ─── Search Screen ────────────────────────────────────────────
+function SearchScreen({ onCard, bookmarks, toggleBookmark }) {
+  const { CARDS, CATEGORIES } = window.TR_DATA;
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState("전체");
+  const trending = ["얼먹젤리", "코스트코 망고푸딩", "칠리스 치즈스틱", "동결건조"];
+  const filtered = CARDS.filter(c =>
+    (cat === "전체" || c.category === cat) &&
+    (q.trim() === "" || c.title.includes(q.trim()) || c.category.includes(q.trim()))
+  );
+  return (
+    <div style={{ padding: "8px 0 100px" }}>
+      <div style={{ padding: "8px 20px 16px" }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: "-0.035em" }}>검색</h1>
+      </div>
+      <div style={{ padding: "0 20px" }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "12px 14px", background: "var(--tr-card-2)", borderRadius: 14,
+        }}>
+          <IconSearch size={18} stroke="var(--tr-muted)" />
+          <input value={q} onChange={(e) => setQ(e.target.value)}
+                 placeholder="트렌드, 메뉴, 카테고리 검색"
+                 style={{
+                   flex: 1, border: 0, background: "transparent", outline: "none",
+                   fontSize: 14.5, fontFamily: "inherit", color: "var(--tr-fg)",
+                   letterSpacing: "-0.01em",
+                 }} />
+          {q && (
+            <button onClick={() => setQ("")} style={{
+              border: 0, background: "transparent", color: "var(--tr-muted)", padding: 0, cursor: "pointer",
+              display: "flex",
+            }}><IconClose size={16} /></button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "16px 20px 8px" }} className="tr-no-scrollbar">
+        {CATEGORIES.map(c => (
+          <button key={c} onClick={() => setCat(c)} style={{
+            padding: "8px 14px", borderRadius: 100, border: 0, cursor: "pointer",
+            fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap",
+            background: cat === c ? "var(--tr-fg)" : "var(--tr-card-2)",
+            color: cat === c ? "var(--tr-bg)" : "var(--tr-fg)",
+          }}>{c}</button>
+        ))}
+      </div>
+
+      {q === "" ? (
+        <div style={{ padding: "16px 20px 0" }}>
+          <SectionLabel>지금 많이 찾아요</SectionLabel>
+          <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {trending.map((t, i) => (
+              <button key={t} onClick={() => setQ(t)} style={{
+                padding: "10px 14px", border: 0, borderRadius: 100,
+                background: "var(--tr-card-2)", color: "var(--tr-fg)",
+                fontSize: 13.5, fontWeight: 500, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+              }}>
+                <span style={{
+                  fontFamily: "'Space Grotesk', sans-serif", fontSize: 11, fontWeight: 700,
+                  color: "var(--tr-red)",
+                }}>{i + 1}</span>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 28 }}>
+            <SectionLabel>{cat} 카테고리</SectionLabel>
+            <div style={{
+              marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14,
+            }}>
+              {filtered.slice(0, 6).map(c => (
+                <GridCard key={c.id} card={c} onClick={() => onCard(c.id)} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: "16px 20px 0" }}>
+          <div style={{ fontSize: 12, color: "var(--tr-muted)", marginBottom: 14 }}>
+            검색 결과 {filtered.length}건
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {filtered.map(c => (
+              <CompactCardItem key={c.id} card={c} onClick={() => onCard(c.id)}
+                               bookmarked={bookmarks.has(c.id)}
+                               onBookmark={() => toggleBookmark(c.id)} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GridCard({ card, onClick }) {
+  return (
+    <div onClick={onClick} style={{ cursor: "pointer" }}>
+      <Cover cover={card.cover} height={160} />
+      <div style={{ padding: "10px 2px 0" }}>
+        <div style={{ marginBottom: 6 }}>
+          <TimingPill timing={card.timing} />
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.25,
+                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {card.title}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Bookmarks ────────────────────────────────────────────────
+function BookmarksScreen({ bookmarks, toggleBookmark, onCard }) {
+  const cards = window.TR_DATA.CARDS.filter(c => bookmarks.has(c.id));
+  return (
+    <div style={{ padding: "8px 0 100px" }}>
+      <div style={{ padding: "8px 20px 20px" }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: "-0.035em" }}>북마크</h1>
+        <div style={{ fontSize: 12.5, color: "var(--tr-muted)", marginTop: 4, fontWeight: 500 }}>
+          {cards.length}장 저장됨
+        </div>
+      </div>
+      {cards.length === 0 ? (
+        <div style={{
+          margin: "0 20px", padding: "60px 24px", borderRadius: 18, background: "var(--tr-card-2)",
+          textAlign: "center",
+        }}>
+          <div style={{ display: "inline-flex", padding: 16, background: "var(--tr-bg)", borderRadius: 100, color: "var(--tr-muted)" }}>
+            <IconBookmark size={22} />
+          </div>
+          <div style={{ marginTop: 14, fontSize: 15, fontWeight: 600 }}>아직 저장한 카드가 없어요</div>
+          <div style={{ marginTop: 6, fontSize: 13, color: "var(--tr-muted)", lineHeight: 1.5 }}>
+            마음에 드는 트렌드 카드를<br/>
+            북마크해서 모아두세요.
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 18 }}>
+          {cards.map(c => (
+            <CompactCardItem key={c.id} card={c} onClick={() => onCard(c.id)}
+                             bookmarked={true} onBookmark={() => toggleBookmark(c.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Profile ──────────────────────────────────────────────────
+function ProfileScreen({ onAdmin }) {
+  return (
+    <div style={{ padding: "8px 0 100px" }}>
+      <div style={{ padding: "8px 20px 20px" }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: "-0.035em" }}>설정</h1>
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+        {/* Profile card */}
+        <div style={{
+          padding: "20px", borderRadius: 18, background: "var(--tr-card-2)",
+          display: "flex", alignItems: "center", gap: 14,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 100, background: "var(--tr-fg)", color: "var(--tr-bg)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, fontWeight: 700,
+          }}>김</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.02em" }}>김 제작자</div>
+            <div style={{ fontSize: 12.5, color: "var(--tr-muted)", marginTop: 2 }}>주로 디저트 · 14일 째 사용 중</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <SectionLabel>내 활동</SectionLabel>
+          <MenuList items={[
+            { label: "북마크한 카드", value: "12장" },
+            { label: "이거로 영상 찍었어요", value: "3건" },
+            { label: "관심 카테고리", value: "디저트, 식당" },
+          ]} />
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <SectionLabel>알림</SectionLabel>
+          <MenuList items={[
+            { label: "아침 발행 알림", toggle: true, value: true },
+            { label: "내가 북마크한 카드 끝물 경보", toggle: true, value: true },
+            { label: "새 카테고리 출시", toggle: true, value: false },
+          ]} />
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <SectionLabel>기타</SectionLabel>
+          <MenuList items={[
+            { label: "사용 약관", arrow: true },
+            { label: "개인정보 처리방침", arrow: true },
+            { label: "문의하기", arrow: true },
+          ]} />
+        </div>
+
+        {/* Admin entry */}
+        <div style={{ marginTop: 28 }}>
+          <SectionLabel>운영</SectionLabel>
+          <div onClick={onAdmin} style={{
+            marginTop: 10, padding: "16px 18px", borderRadius: 14,
+            background: "var(--tr-fg)", color: "var(--tr-bg)",
+            display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+          }}>
+            <IconLayers size={20} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.015em" }}>운영자 콘솔로 이동</div>
+              <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>후보 검토 · 카드 발행 · 지표</div>
+            </div>
+            <IconChevronRight size={18} />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 36, fontSize: 11, color: "var(--tr-muted)", textAlign: "center", fontWeight: 500 }}>
+          Trend Radar · MVP v0.1
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MenuList({ items }) {
+  return (
+    <div style={{ marginTop: 10, background: "var(--tr-card-2)", borderRadius: 14, overflow: "hidden" }}>
+      {items.map((it, i) => (
+        <div key={i} style={{
+          display: "flex", alignItems: "center", padding: "14px 16px",
+          borderTop: i === 0 ? 0 : "1px solid var(--tr-line)",
+          fontSize: 14, letterSpacing: "-0.01em",
+        }}>
+          <span style={{ flex: 1, fontWeight: 500 }}>{it.label}</span>
+          {it.toggle ? <Toggle on={it.value} /> :
+            <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--tr-muted)", fontSize: 13 }}>
+              {it.value}
+              {it.arrow && <IconChevronRight size={14} />}
+            </span>
+          }
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Toggle({ on: init = false, onChange }) {
+  const [internal, setInternal] = useState(init);
+  const controlled = onChange !== undefined;
+  const on = controlled ? init : internal;
+  const flip = () => {
+    if (controlled) onChange(!on);
+    else setInternal(o => !o);
+  };
+  return (
+    <button onClick={flip} style={{
+      width: 44, height: 26, borderRadius: 100, border: 0, padding: 0, cursor: "pointer",
+      background: on ? "var(--tr-fg)" : "var(--tr-line)", position: "relative",
+      transition: "background .2s",
+    }}>
+      <div style={{
+        position: "absolute", top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 100,
+        background: "#fff", transition: "left .2s",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+      }} />
+    </button>
+  );
+}
+
+// ─── Bottom nav ──────────────────────────────────────────────
+function BottomNav({ tab, onTab }) {
+  const tabs = [
+    { k: "home", label: "홈", Icon: IconHome },
+    { k: "search", label: "검색", Icon: IconSearch },
+    { k: "bookmarks", label: "북마크", Icon: IconBookmark },
+    { k: "profile", label: "설정", Icon: IconUser },
+  ];
+  return (
+    <div style={{
+      position: "absolute", bottom: 0, left: 0, right: 0,
+      background: "var(--tr-bg)", borderTop: "1px solid var(--tr-line)",
+      display: "flex", padding: "8px 4px 12px", zIndex: 20,
+    }}>
+      {tabs.map(t => (
+        <button key={t.k} onClick={() => onTab(t.k)} style={{
+          flex: 1, border: 0, background: "transparent", cursor: "pointer",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+          padding: "8px 0", color: tab === t.k ? "var(--tr-fg)" : "var(--tr-muted)",
+        }}>
+          <t.Icon size={22} sw={tab === t.k ? 2 : 1.6} />
+          <span style={{ fontSize: 10.5, fontWeight: tab === t.k ? 600 : 500, letterSpacing: "-0.01em" }}>
+            {t.label}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+Object.assign(window, {
+  Onboarding, HomeScreen, CardDetail, SearchScreen, BookmarksScreen, ProfileScreen, BottomNav,
+  Cover, TimingPill, TrafficLight, SectionLabel, RealtimeStrip, CompactCardItem,
+});

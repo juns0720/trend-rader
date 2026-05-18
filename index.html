@@ -1,85 +1,74 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Trend Radar — Prototype</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trend Radar — MVP Prototype</title>
 
-  <!-- Pretendard (Korean+Latin) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
-  <link rel="stylesheet"
-    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
-
-  <!-- React + Babel -->
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"
-    integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"
-    crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
-    integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"
-    crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
-    integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y"
-    crossorigin="anonymous"></script>
+  <!-- Fonts: Pretendard / SUIT / Wanted Sans / Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/complete/WantedSansVariable.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
 
   <style>
-    :root {
-      --bg:    #faf7f1;
-      --bg-2:  #f1ece1;
-      --paper: #ffffff;
-      --ink:   #1a1814;
-      --ink-2: #4a463f;
-      --mute:  #8a8478;
-      --line:  #e6e0d2;
-      --go:    oklch(0.72 0.16 145);
-      --soon:  oklch(0.78 0.15 85);
-      --late:  oklch(0.65 0.18 25);
-      --font-body: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif;
+    *,*::before,*::after{box-sizing:border-box}
+    html,body,#root{margin:0;padding:0;height:100%;background:#171717;font-family:Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    body{overflow:hidden}
+
+    /* Background dot grid behind the phone */
+    body::before{
+      content:""; position:fixed; inset:0; z-index:0;
+      background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
+      background-size: 22px 22px;
+      pointer-events: none;
     }
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      font-family: var(--font-body);
-      color: var(--ink);
-      background: #e9e6df;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      letter-spacing: -0.005em;
+
+    .tr-icon-btn{
+      width:38px;height:38px;border:0;border-radius:100px;background:transparent;
+      color:var(--tr-fg);cursor:pointer;display:flex;align-items:center;justify-content:center;
     }
-    /* All elements inherit Pretendard */
-    button, input, textarea, select { font-family: inherit; color: inherit; letter-spacing: inherit; }
-    /* Hide scrollbars where natural (chips strips, etc.) */
-    ::-webkit-scrollbar { width: 0; height: 0; }
-    /* Keyframes for screen transitions */
-    @keyframes tr-slide-in {
-      from { transform: translateX(30%); opacity: 0; }
-      to   { transform: translateX(0);   opacity: 1; }
-    }
-    @keyframes tr-fade-in {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
+    .tr-icon-btn:hover{background:var(--tr-card-2)}
+    .tr-no-scrollbar::-webkit-scrollbar{display:none}
+    .tr-no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+
     @keyframes tr-pulse {
-      0%, 100% { opacity: 1; transform: scale(1);   }
-      50%      { opacity: 0.45; transform: scale(0.7); }
+      0%   { transform: scale(0.9); opacity: 0.4; }
+      70%  { transform: scale(1.6); opacity: 0; }
+      100% { transform: scale(1.8); opacity: 0; }
     }
-    /* Selection */
-    ::selection { background: var(--ink); color: var(--paper); }
+    @keyframes tr-spin { to { transform: rotate(360deg); } }
+    @keyframes tr-slide-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
-  <!-- Frames / starter components -->
-  <script type="text/babel" src="frames/design-canvas.jsx"></script>
-  <script type="text/babel" src="frames/android-frame.jsx"></script>
-  <script type="text/babel" src="frames/browser-window.jsx"></script>
-  <script type="text/babel" src="frames/tweaks-panel.jsx"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-  <!-- App -->
-  <script type="text/babel" src="app/data.jsx"></script>
-  <script type="text/babel" src="app/ui.jsx"></script>
-  <script type="text/babel" src="app/user-app.jsx"></script>
-  <script type="text/babel" src="app/admin-console.jsx"></script>
-  <script type="text/babel" src="app/main.jsx"></script>
+  <script src="data.js"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="user.jsx"></script>
+  <script type="text/babel" src="admin.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <rect width="200" height="200" fill="#0a0a0a"/>
+      <circle cx="100" cy="100" r="56" fill="none" stroke="#C8FF3D" stroke-width="3"/>
+      <circle cx="100" cy="100" r="34" fill="none" stroke="#C8FF3D" stroke-width="3" opacity="0.7"/>
+      <circle cx="100" cy="100" r="14" fill="none" stroke="#C8FF3D" stroke-width="3" opacity="0.5"/>
+      <line x1="100" y1="100" x2="142" y2="58" stroke="#C8FF3D" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="142" cy="58" r="5" fill="#C8FF3D"/>
+    </svg>
+  </template>
 </body>
 </html>
