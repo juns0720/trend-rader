@@ -299,4 +299,225 @@ const STATS = {
   weekly: [4, 6, 5, 8, 7, 9, 8], // mon~sun
 };
 
+const DEFAULT_TREND_POINTS = [
+  { date: "5/05", value: 18 },
+  { date: "5/06", value: 22 },
+  { date: "5/07", value: 26 },
+  { date: "5/08", value: 25 },
+  { date: "5/09", value: 31 },
+  { date: "5/10", value: 36 },
+  { date: "5/11", value: 42 },
+  { date: "5/12", value: 48 },
+  { date: "5/13", value: 52 },
+  { date: "5/14", value: 61 },
+  { date: "5/15", value: 69 },
+  { date: "5/16", value: 78 },
+  { date: "5/17", value: 88 },
+  { date: "5/18", value: 100 },
+];
+
+const TREND_ENRICHMENT = {
+  c01: {
+    naverTrend: {
+      period: "14d",
+      updatedAt: "오늘 09:30",
+      points: DEFAULT_TREND_POINTS,
+      changeRate: "+62%",
+      dailyChange: "+18%",
+      peakStatus: "rising",
+      audienceBreakdown: {
+        gender: [
+          { label: "여성", value: 68 },
+          { label: "남성", value: 32 },
+        ],
+        age: [
+          { label: "10대", value: 18 },
+          { label: "20대", value: 41 },
+          { label: "30대", value: 27 },
+          { label: "40대+", value: 14 },
+        ],
+      },
+      audience: "20대 여성",
+      audienceDetail: [
+        { label: "여성", value: "68%" },
+        { label: "20대", value: "41%" },
+        { label: "모바일", value: "82%" },
+      ],
+      reason: "신상 대용량 디저트와 코스트코 키워드가 같이 묶이면서 저장/공유형 콘텐츠 수요가 빠르게 붙는 중.",
+    },
+    creatorKit: {
+      hooks: ["이 한 통이 진짜 1.2kg입니다", "코스트코에서 지금 제일 위험한 디저트", "다섯 명이 먹어도 남는 망고푸딩"],
+      titles: ["코스트코 망고푸딩, 진짜 살만한가", "1.2kg 망고푸딩 먹방각 체크", "요즘 저장 많이 되는 코스트코 신상"],
+      thumbnailCopies: ["1.2kg 실물", "코스트코 신상", "지금 타도 됨"],
+      shotList: ["카트에 담는 첫 컷", "뚜껑 열고 숟가락으로 단면 떠올리기", "일반 컵 디저트와 크기 비교", "3명이 나눠 먹는 분량 컷"],
+      platformFormats: [
+        { p: "릴스", tip: "첫 2초에 통 크기 비교를 넣고, 6초 안에 단면을 보여준다." },
+        { p: "쇼츠", tip: "가격, 용량, 맛 평가를 3줄 자막으로 압축한다." },
+        { p: "틱톡", tip: "숟가락 ASMR과 과장된 리액션을 앞에 둔다." },
+      ],
+      doNotUse: "매장 내부 촬영 제약과 브랜드 광고처럼 보이는 멘트를 피한다.",
+    },
+    consumerSummary: {
+      plainWhat: "코스트코에서 나온 대용량 망고푸딩이다.",
+      whyPeopleCare: "큰 크기와 노란 단면이 영상에서 바로 눈에 띄고, 나눠 먹는 장면을 만들기 좋다.",
+      whereToFind: "코스트코 디저트/냉장 코너에서 확인하는 흐름으로 보여준다.",
+      tryNowVerdict: "지금 검색이 계속 오르는 중이라 콘텐츠로 다루기 좋은 타이밍이다.",
+    },
+    relatedTrends: {
+      keywords: ["코스트코 신상", "망고 디저트", "대용량 디저트", "떠먹는 푸딩"],
+      hashtags: ["#코스트코신상", "#망고푸딩", "#대용량디저트", "#디저트추천"],
+      places: ["코스트코", "냉장 디저트 코너", "푸드 리뷰 계정"],
+      compareWith: ["트레이더스 디저트", "편의점 망고젤리", "카페 망고빙수"],
+    },
+    reactionSignals: {
+      summary: "반응은 긍정이 우세하지만, 구매처를 묻는 댓글도 빠르게 늘고 있어요.",
+      defaultKey: "positive",
+      segments: [
+        { key: "positive", label: "긍정", value: 54, tone: "green", examples: ["크기만 봐도 영상감이라는 반응이 많아요.", "망고 단면과 대용량 비주얼에 저장 반응이 붙고 있어요."] },
+        { key: "where", label: "구매처 질문", value: 23, tone: "yellow", examples: ["어느 코스트코 지점에 있는지 묻는 댓글이 많아요.", "냉장 코너 위치와 재고 질문이 반복돼요."] },
+        { key: "curious", label: "궁금", value: 15, tone: "blue", examples: ["맛이 푸딩인지 젤리인지 궁금하다는 반응이 보여요.", "몇 명이 먹을 수 있는지 묻는 반응이 있어요."] },
+        { key: "negative", label: "부정", value: 8, tone: "red", examples: ["너무 달 것 같다는 우려가 있어요.", "대용량이라 보관이 부담스럽다는 반응이 일부 있어요."] },
+      ],
+    },
+  },
+};
+
+const TREND_POINT_SETS = [
+  DEFAULT_TREND_POINTS,
+  [16, 20, 22, 30, 34, 39, 45, 50, 58, 64, 68, 72, 76, 82].map((value, i) => ({ date: `5/${String(i + 5).padStart(2, "0")}`, value })),
+  [8, 12, 18, 26, 30, 41, 52, 58, 63, 71, 79, 88, 93, 100].map((value, i) => ({ date: `5/${String(i + 5).padStart(2, "0")}`, value })),
+  [92, 100, 96, 88, 79, 70, 63, 58, 52, 45, 40, 35, 31, 28].map((value, i) => ({ date: `5/${String(i + 5).padStart(2, "0")}`, value })),
+  [20, 24, 31, 33, 35, 38, 41, 49, 55, 59, 62, 64, 67, 70].map((value, i) => ({ date: `5/${String(i + 5).padStart(2, "0")}`, value })),
+  [14, 21, 27, 34, 42, 55, 61, 72, 80, 84, 89, 94, 97, 100].map((value, i) => ({ date: `5/${String(i + 5).padStart(2, "0")}`, value })),
+  [28, 31, 34, 38, 40, 43, 46, 49, 51, 55, 58, 60, 62, 66].map((value, i) => ({ date: `5/${String(i + 5).padStart(2, "0")}`, value })),
+  [18, 22, 30, 36, 44, 50, 57, 64, 69, 73, 79, 84, 89, 92].map((value, i) => ({ date: `5/${String(i + 5).padStart(2, "0")}`, value })),
+];
+
+function audienceTrendPoints(points, label) {
+  const profile = {
+    여성: { offset: 3, slope: 9 },
+    남성: { offset: -2, slope: 3 },
+    "10대": { offset: 1, slope: 12 },
+    "20대": { offset: 4, slope: 13 },
+    "30대": { offset: 2, slope: 6 },
+    "40대+": { offset: -4, slope: 2 },
+  }[label] || { offset: 0, slope: 0 };
+  return points.map((point, i) => {
+    const progress = points.length <= 1 ? 0 : i / (points.length - 1);
+    const value = Math.max(1, Math.min(100, Math.round(point.value + profile.offset + profile.slope * progress)));
+    return { ...point, value };
+  });
+}
+
+function hydrateAudienceBreakdown(points, breakdown) {
+  if (!breakdown) return null;
+  const hydrate = item => ({
+    ...item,
+    share: item.share ?? item.value,
+    points: item.points || audienceTrendPoints(points, item.label),
+  });
+  return {
+    all: { label: "전체", share: 100, points },
+    gender: (breakdown.gender || []).map(hydrate),
+    age: (breakdown.age || []).map(hydrate),
+  };
+}
+
+const AUDIENCE_SEGMENTS = [
+  {
+    audience: "20대 여성",
+    detail: [{ label: "여성", value: "64%" }, { label: "20대", value: "39%" }, { label: "모바일", value: "79%" }],
+    breakdown: {
+      gender: [{ label: "여성", value: 64 }, { label: "남성", value: 36 }],
+      age: [{ label: "10대", value: 20 }, { label: "20대", value: 39 }, { label: "30대", value: 25 }, { label: "40대+", value: 16 }],
+    },
+  },
+  {
+    audience: "30대 여성",
+    detail: [{ label: "여성", value: "58%" }, { label: "30대", value: "34%" }, { label: "모바일", value: "73%" }],
+    breakdown: {
+      gender: [{ label: "여성", value: 58 }, { label: "남성", value: 42 }],
+      age: [{ label: "10대", value: 12 }, { label: "20대", value: 29 }, { label: "30대", value: 34 }, { label: "40대+", value: 25 }],
+    },
+  },
+  {
+    audience: "10대 여성",
+    detail: [{ label: "여성", value: "61%" }, { label: "10대", value: "37%" }, { label: "모바일", value: "86%" }],
+    breakdown: {
+      gender: [{ label: "여성", value: 61 }, { label: "남성", value: 39 }],
+      age: [{ label: "10대", value: 37 }, { label: "20대", value: 33 }, { label: "30대", value: 18 }, { label: "40대+", value: 12 }],
+    },
+  },
+  {
+    audience: "20대 남성",
+    detail: [{ label: "남성", value: "55%" }, { label: "20대", value: "36%" }, { label: "모바일", value: "71%" }],
+    breakdown: {
+      gender: [{ label: "여성", value: 45 }, { label: "남성", value: 55 }],
+      age: [{ label: "10대", value: 17 }, { label: "20대", value: 36 }, { label: "30대", value: 29 }, { label: "40대+", value: 18 }],
+    },
+  },
+];
+
+CARDS.forEach((card, i) => {
+  const custom = TREND_ENRICHMENT[card.id] || {};
+  const points = TREND_POINT_SETS[i % TREND_POINT_SETS.length];
+  const audienceSegment = AUDIENCE_SEGMENTS[i % AUDIENCE_SEGMENTS.length];
+  const declining = String(card.velocity).startsWith("-");
+  const peaking = card.timing === "yellow";
+  card.naverTrend = custom.naverTrend || {
+    period: "14d",
+    updatedAt: "오늘 09:30",
+    points,
+    changeRate: card.velocity,
+    dailyChange: declining ? "-4%" : `+${Math.max(3, Math.round(card.score * 2))}%`,
+    peakStatus: declining ? "declining" : peaking ? "peaking" : "rising",
+    audience: audienceSegment.audience,
+    audienceDetail: audienceSegment.detail,
+    audienceBreakdown: audienceSegment.breakdown,
+    reason: declining
+      ? "검색 관심도가 정점 이후 내려오는 중이라 반응형 리뷰나 비교 콘텐츠가 더 안전하다."
+      : peaking
+        ? "상승세는 있지만 수명이 짧은 신상형 키워드라 빠르게 확인해야 한다."
+        : "최근 검색 관심도와 소셜 언급이 함께 오르며 첫 진입 콘텐츠에 유리하다.",
+  };
+  card.naverTrend.audienceBreakdown = hydrateAudienceBreakdown(
+    card.naverTrend.points,
+    card.naverTrend.audienceBreakdown
+  );
+  card.creatorKit = custom.creatorKit || {
+    hooks: [card.hook, `${card.title} 지금 찍어도 될까?`, `요즘 이 키워드가 왜 뜨는지 10초 요약`],
+    titles: [`${card.title} 뜨는 이유`, `${card.title} 콘텐츠 각도 3가지`, `지금 타야 할 ${card.category} 트렌드`],
+    thumbnailCopies: ["지금 타도 됨", "검색 상승 중", "3초 훅 포함"],
+    shotList: ["제품 또는 메뉴 실물 첫 컷", "가장 다른 포인트를 클로즈업", "기존 인기템과 비교", "마지막에 한 줄 verdict 자막"],
+    platformFormats: card.platform,
+    doNotUse: card.caution,
+  };
+  card.consumerSummary = custom.consumerSummary || {
+    plainWhat: card.what,
+    whyPeopleCare: card.why,
+    whereToFind: "관련 매장, 편의점, SNS 해시태그, 검색 결과에서 확인할 수 있다.",
+    tryNowVerdict: card.timing === "red" ? "이미 정점을 지난 편이라 구경용으로 보는 편이 낫다." : "지금 관심도가 남아 있어 한 번 확인해볼 만하다.",
+  };
+  card.relatedTrends = custom.relatedTrends || {
+    keywords: [card.title, `${card.category} 신상`, `${card.category} 추천`, "요즘 뜨는 메뉴"],
+    hashtags: [`#${String(card.title).replace(/\s/g, "")}`, "#오늘의트렌드", `#${String(card.category).replace(/\s/g, "")}`],
+    places: ["네이버 검색", "인스타 해시태그", "X 음식 큐레이터", "관련 매장"],
+    compareWith: CARDS.filter(c => c.id !== card.id && c.category === card.category).slice(0, 3).map(c => c.title),
+  };
+  card.reactionSignals = custom.reactionSignals || {
+    summary: declining
+      ? "호기심은 남아 있지만 피로감과 비교 반응이 같이 늘고 있어요."
+      : peaking
+        ? "긍정 반응은 유지되지만, 구하기 어렵다는 질문이 함께 늘고 있어요."
+        : "긍정과 궁금증이 같이 올라오며 검색 관심도를 밀어 올리고 있어요.",
+    defaultKey: declining ? "negative" : "positive",
+    segments: [
+      { key: "positive", label: "긍정", value: declining ? 28 : peaking ? 42 : 52, tone: "green", examples: [`${card.title}을 직접 확인해보고 싶다는 반응이 보여요.`, "비주얼과 새로움에 대한 저장 반응이 있습니다."] },
+      { key: "where", label: "구매처 질문", value: declining ? 14 : peaking ? 26 : 20, tone: "yellow", examples: ["어디서 볼 수 있는지 묻는 댓글이 반복돼요.", "매장, 지점, 재고 관련 질문이 붙고 있어요."] },
+      { key: "curious", label: "궁금", value: declining ? 22 : 20, tone: "blue", examples: ["맛, 가격, 실제 크기를 궁금해하는 반응이 있어요.", "기존 제품과 무엇이 다른지 묻는 흐름이 보여요."] },
+      { key: "negative", label: "부정", value: declining ? 36 : peaking ? 12 : 8, tone: "red", examples: [declining ? "이미 많이 봤다는 피로감이 일부 보여요." : "가격이나 접근성에 대한 우려가 조금 있어요.", "호불호가 갈릴 수 있다는 반응이 있습니다."] },
+    ],
+  };
+});
+
 window.TR_DATA = { CARDS, REALTIME, CATEGORIES, CANDIDATES, ACCOUNTS, BLOCKLIST, STATS };

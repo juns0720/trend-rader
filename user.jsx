@@ -172,8 +172,7 @@ function HomeScreen({ onCard, bookmarks, toggleBookmark }) {
             2026년 5월 18일 · 월
           </div>
           <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 }}>
-            오늘의 트렌드<br/>
-            <span style={{ color: "var(--tr-muted)" }}>{CARDS.length}장</span>
+            오늘의 트렌드
           </h1>
         </div>
         <div style={{ display: "flex", gap: 4, marginTop: 6, color: "var(--tr-fg)" }}>
@@ -401,7 +400,7 @@ function CompactCardItem({ card, bookmarked, onBookmark, onClick }) {
 }
 
 // ─── Card Detail ──────────────────────────────────────────────
-function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
+function LegacyCardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
   const card = window.TR_DATA.CARDS.find(c => c.id === cardId);
   if (!card) return null;
   const bookmarked = bookmarks.has(card.id);
@@ -517,7 +516,7 @@ function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
                 padding: "12px 0", borderTop: i === 0 ? 0 : "1px solid var(--tr-line)",
                 color: "var(--tr-fg)", textDecoration: "none",
               }}>
-                <SourceIcon type={s.type} />
+                <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--tr-card-2)", flexShrink: 0 }} />
                 <span style={{ flex: 1, fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>{s.label}</span>
                 <IconChevronRight size={16} stroke="var(--tr-muted)" />
               </a>
@@ -533,6 +532,415 @@ function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
           <IconClock size={13} />
           <span>발행 {card.publishedAt} · 운영자 검수 완료</span>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function peakStatusLabel(status) {
+  return {
+    rising: "상승 중",
+    peaking: "정점 근처",
+    declining: "하락 중",
+  }[status] || "수집 전";
+}
+
+function TrendLineChart({ points }) {
+  if (!points || points.length === 0) {
+    return (
+      <div style={{
+        height: 132, borderRadius: 14, background: "var(--tr-card-2)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 13, color: "var(--tr-muted)", fontWeight: 500,
+      }}>데이터 수집 전</div>
+    );
+  }
+  const width = 292;
+  const height = 132;
+  const pad = 12;
+  const max = Math.max(...points.map(p => p.value), 1);
+  const min = Math.min(...points.map(p => p.value), 0);
+  const range = Math.max(max - min, 1);
+  const coords = points.map((p, i) => {
+    const x = pad + (i * (width - pad * 2)) / Math.max(points.length - 1, 1);
+    const y = height - pad - ((p.value - min) / range) * (height - pad * 2);
+    return { x, y, ...p };
+  });
+  const line = coords.map(p => `${p.x},${p.y}`).join(" ");
+  const area = `${pad},${height - pad} ${line} ${width - pad},${height - pad}`;
+  return (
+    <div style={{ marginTop: 14 }}>
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} style={{ display: "block" }}>
+        <defs>
+          <linearGradient id="trendArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--tr-accent)" stopOpacity="0.36" />
+            <stop offset="100%" stopColor="var(--tr-accent)" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {[0, 1, 2].map(i => (
+          <line key={i} x1={pad} x2={width - pad} y1={pad + i * 48} y2={pad + i * 48}
+                stroke="var(--tr-line)" strokeWidth="1" />
+        ))}
+        <polygon points={area} fill="url(#trendArea)" />
+        <polyline points={line} fill="none" stroke="var(--tr-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {coords.map((p, i) => (i === 0 || i === coords.length - 1) && (
+          <circle key={i} cx={p.x} cy={p.y} r="4" fill="var(--tr-accent)" stroke="var(--tr-bg)" strokeWidth="2" />
+        ))}
+      </svg>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--tr-muted)", fontWeight: 500 }}>
+        <span>{points[0].date}</span>
+        <span>최근 14일 상대 검색 관심도</span>
+        <span>{points[points.length - 1].date}</span>
+      </div>
+    </div>
+  );
+}
+
+function TrendMetric({ label, value, tone }) {
+  const color = tone === "hot" ? "var(--tr-red)" : tone === "cool" ? "var(--tr-blue)" : "var(--tr-fg)";
+  return (
+    <div style={{ flex: 1, minWidth: 0, padding: "12px 10px", borderRadius: 12, background: "var(--tr-bg)" }}>
+      <div style={{ fontSize: 10.5, color: "var(--tr-muted)", fontWeight: 600, letterSpacing: "0.02em" }}>{label}</div>
+      <div style={{ marginTop: 5, fontSize: 16, fontWeight: 700, color, letterSpacing: "-0.02em" }}>{value}</div>
+    </div>
+  );
+}
+
+function TrendVerificationCard({ card }) {
+  const trend = card.naverTrend;
+  if (!trend) {
+    return (
+      <div style={{ padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
+        <SectionLabel>트렌드 검증</SectionLabel>
+        <div style={{ marginTop: 12, fontSize: 14, color: "var(--tr-muted)", lineHeight: 1.5 }}>
+          네이버 데이터랩 검색 추이를 아직 수집하지 않았습니다.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <SectionLabel>트렌드 검증</SectionLabel>
+          <div style={{ marginTop: 6, fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em" }}>
+            네이버 검색 관심도 {trend.changeRate}
+          </div>
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6, padding: "7px 10px",
+          borderRadius: 100, background: "var(--tr-bg)", fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap",
+        }}>
+          <IconChart size={14} />
+          {peakStatusLabel(trend.peakStatus)}
+        </div>
+      </div>
+      <TrendLineChart points={trend.points} />
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <TrendMetric label="전일 대비" value={trend.dailyChange || "-"} tone={String(trend.dailyChange).startsWith("-") ? "cool" : "hot"} />
+        <TrendMetric label="누가 찾나" value={trend.audience || "-"} />
+      </div>
+      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--tr-muted)" }}>
+        <IconClock size={12} />
+        <span>최근 14일 일간 추이 · {trend.updatedAt} 갱신</span>
+      </div>
+    </div>
+  );
+}
+
+function reactionToneColor(tone) {
+  return {
+    green: "var(--tr-green)",
+    yellow: "var(--tr-yellow)",
+    blue: "var(--tr-blue)",
+    red: "var(--tr-red)",
+  }[tone] || "var(--tr-accent)";
+}
+
+function normalizeAudienceFilters(trend) {
+  if (!trend?.audienceBreakdown) return null;
+  return {
+    gender: trend.audienceBreakdown.gender || [],
+    age: trend.audienceBreakdown.age || [],
+  };
+}
+
+function combineAudienceSelection(filters, genderLabel, ageLabel) {
+  const gender = genderLabel === "전체" ? null : filters.gender.find(item => item.label === genderLabel);
+  const age = ageLabel === "전체" ? null : filters.age.find(item => item.label === ageLabel);
+  if (gender && age) {
+    return {
+      label: `${gender.label} · ${age.label}`,
+      share: Math.max(1, Math.round((Number(gender.share) * Number(age.share)) / 100)),
+    };
+  }
+  if (gender) {
+    return { label: gender.label, share: Number(gender.share) || 0 };
+  }
+  if (age) {
+    return { label: age.label, share: Number(age.share) || 0 };
+  }
+  return { label: "전체", share: 100 };
+}
+
+function AudienceFilterGroup({ title, options, selected, onSelect }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 800, marginBottom: 8 }}>{title}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {options.map(option => {
+          const isSelected = selected === option;
+          return (
+            <button key={option} onClick={() => onSelect(option)} style={{
+              border: 0, borderRadius: 100, padding: "8px 11px",
+              background: isSelected ? "var(--tr-fg)" : "var(--tr-bg)",
+              color: isSelected ? "var(--tr-bg)" : "var(--tr-fg)",
+              fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer",
+            }}>
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AudienceSelectionBar({ selection }) {
+  const width = Math.max(4, Math.min(100, selection.share));
+  return (
+    <div style={{ marginTop: 16, padding: 15, borderRadius: 16, background: "var(--tr-bg)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em" }}>{selection.label}</div>
+        <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.03em" }}>{selection.share}%</div>
+      </div>
+      <div style={{
+        marginTop: 11, height: 14, borderRadius: 100, overflow: "hidden",
+        background: "var(--tr-card-2)",
+      }}>
+        <div style={{
+          width: `${width}%`, height: "100%", borderRadius: 100,
+          background: "var(--tr-accent)",
+        }} />
+      </div>
+      <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 600 }}>
+        선택한 검색층의 상대 관심 비중
+      </div>
+    </div>
+  );
+}
+
+function AudienceBreakdownPanel({ card }) {
+  const filters = normalizeAudienceFilters(card.naverTrend);
+  const [selectedGender, setSelectedGender] = useState("전체");
+  const [selectedAge, setSelectedAge] = useState("전체");
+  if (!filters || (!filters.gender.length && !filters.age.length)) {
+    return (
+      <div>
+        <SectionLabel>검색층 분석</SectionLabel>
+        <div style={{
+          marginTop: 12, padding: 18, borderRadius: 18, background: "var(--tr-card-2)",
+          fontSize: 14, color: "var(--tr-muted)", lineHeight: 1.5,
+        }}>
+          검색층 데이터 수집 전
+        </div>
+      </div>
+    );
+  }
+  const genderOptions = ["전체", ...filters.gender.map(item => item.label)];
+  const ageOptions = ["전체", ...filters.age.map(item => item.label)];
+  const selection = combineAudienceSelection(filters, selectedGender, selectedAge);
+  return (
+    <div>
+      <SectionLabel>검색층 분석</SectionLabel>
+      <div style={{ marginTop: 12, padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
+        <div style={{ fontSize: 12, color: "var(--tr-muted)", fontWeight: 700, lineHeight: 1.45 }}>
+          성별과 나이대를 선택하면 해당 검색층의 관심 비중을 볼 수 있어요
+        </div>
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
+          <AudienceFilterGroup title="성별" options={genderOptions} selected={selectedGender} onSelect={setSelectedGender} />
+          <AudienceFilterGroup title="나이대" options={ageOptions} selected={selectedAge} onSelect={setSelectedAge} />
+        </div>
+        <AudienceSelectionBar selection={selection} />
+      </div>
+    </div>
+  );
+}
+
+function ReactionSignalsPanel({ card }) {
+  const signals = card.reactionSignals;
+  if (!signals || !signals.segments || signals.segments.length === 0) {
+    return (
+      <div style={{ padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
+        <SectionLabel>반응 온도</SectionLabel>
+        <div style={{ marginTop: 12, fontSize: 14, color: "var(--tr-muted)", lineHeight: 1.5 }}>
+          반응 데이터 수집 전입니다.
+        </div>
+      </div>
+    );
+  }
+  const firstKey = signals.defaultKey || signals.segments[0].key;
+  const [activeKey, setActiveKey] = useState(firstKey);
+  const active = signals.segments.find(s => s.key === activeKey) || signals.segments[0];
+  const total = signals.segments.reduce((sum, s) => sum + s.value, 0) || 1;
+
+  return (
+    <div>
+      <SectionLabel>반응 온도</SectionLabel>
+      <div style={{ marginTop: 12, padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
+        <div style={{
+          height: 12, borderRadius: 100, overflow: "hidden",
+          display: "flex", background: "var(--tr-bg)",
+        }}>
+          {signals.segments.map(segment => (
+            <div key={segment.key} style={{
+              width: `${Math.max(4, (segment.value / total) * 100)}%`,
+              background: reactionToneColor(segment.tone),
+            }} />
+          ))}
+        </div>
+
+        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {signals.segments.map(segment => {
+            const selected = active.key === segment.key;
+            return (
+              <button key={segment.key} onClick={() => setActiveKey(segment.key)} style={{
+                border: 0, borderRadius: 14, padding: "11px 12px", textAlign: "left",
+                background: selected ? "var(--tr-fg)" : "var(--tr-bg)",
+                color: selected ? "var(--tr-bg)" : "var(--tr-fg)",
+                cursor: "pointer", fontFamily: "inherit",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: 100,
+                    background: reactionToneColor(segment.tone), flexShrink: 0,
+                  }} />
+                  <span style={{ fontSize: 12, fontWeight: 700 }}>{segment.label}</span>
+                </div>
+                <div style={{ marginTop: 5, fontSize: 18, fontWeight: 700, letterSpacing: "-0.03em" }}>
+                  {segment.value}%
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 14, padding: "14px 15px", borderRadius: 14, background: "var(--tr-bg)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
+            <span style={{
+              width: 9, height: 9, borderRadius: 100,
+              background: reactionToneColor(active.tone),
+            }} />
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{active.label} 반응에서 많이 보이는 말</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(active.examples || []).map((example, i) => (
+              <div key={i} style={{
+                fontSize: 13.5, lineHeight: 1.45, color: "var(--tr-fg)",
+                paddingLeft: 12, borderLeft: "2px solid var(--tr-line)",
+              }}>{example}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RelatedChipGroup({ title, items, tone = "soft" }) {
+  return (
+    <div style={{ padding: 15, borderRadius: 16, background: "var(--tr-card-2)" }}>
+      <div style={{ fontSize: 12, color: "var(--tr-muted)", fontWeight: 700, marginBottom: 10 }}>{title}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(items || []).map((item, i) => (
+          <span key={`${item}-${i}`} style={{
+            padding: "8px 10px", borderRadius: 100,
+            background: tone === "dark" ? "var(--tr-fg)" : "var(--tr-bg)",
+            color: tone === "dark" ? "var(--tr-bg)" : "var(--tr-fg)",
+            fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.01em",
+            maxWidth: "100%", overflowWrap: "anywhere",
+          }}>{item}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RelatedTrendsPanel({ card }) {
+  const related = card.relatedTrends;
+  if (!related) {
+    return (
+      <div style={{ padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
+        <SectionLabel>관련 트렌드 탐색</SectionLabel>
+        <div style={{ marginTop: 12, fontSize: 14, color: "var(--tr-muted)", lineHeight: 1.5 }}>
+          관련 데이터 수집 전입니다.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <SectionLabel>관련 트렌드 탐색</SectionLabel>
+      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+        <RelatedChipGroup title="비슷한 검색어" items={related.keywords} tone="dark" />
+        <RelatedChipGroup title="같이 뜨는 해시태그" items={related.hashtags} />
+      </div>
+    </div>
+  );
+}
+
+function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
+  const card = window.TR_DATA.CARDS.find(c => c.id === cardId);
+  if (!card) return null;
+  const bookmarked = bookmarks.has(card.id);
+  return (
+    <div style={{ paddingBottom: 100, animation: "tr-slide-in .25s ease-out" }}>
+      <div style={{ position: "relative" }}>
+        <div style={{ height: 420, width: "100%", overflow: "hidden", position: "relative" }}>
+          <Cover cover={card.cover} height={420} style={{ borderRadius: 0 }} />
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.58), transparent 42%, transparent 70%, rgba(0,0,0,0.18))",
+          }} />
+        </div>
+        <button onClick={onBack} style={{
+          position: "absolute", top: 16, left: 16, width: 40, height: 40, borderRadius: 100,
+          border: 0, background: "rgba(255,255,255,0.92)", color: "var(--tr-fg)",
+          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+          backdropFilter: "blur(8px)",
+        }}>
+          <IconBack size={20} />
+        </button>
+        <button onClick={() => toggleBookmark(card.id)} style={{
+          position: "absolute", top: 16, right: 16, width: 40, height: 40, borderRadius: 100,
+          border: 0, background: "rgba(255,255,255,0.92)", color: "var(--tr-fg)",
+          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+          backdropFilter: "blur(8px)",
+        }}>{bookmarked ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}</button>
+
+        <div style={{ position: "absolute", left: 20, right: 20, bottom: 24, color: "#fff" }}>
+          <div style={{ marginBottom: 10 }}><TimingPill timing={card.timing} /></div>
+          <h1 style={{
+            margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1,
+            textShadow: "0 2px 16px rgba(0,0,0,0.25)",
+          }}>{card.title}</h1>
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, fontWeight: 500, opacity: 0.9, flexWrap: "wrap" }}>
+            <span>#{card.rank}</span>
+            <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
+            <span>{card.category}</span>
+            <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
+            <span>점수 {card.score}</span>
+            <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
+            <span>{card.velocity}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "24px 20px 0", display: "flex", flexDirection: "column", gap: 28 }}>
+        <TrendVerificationCard card={card} />
+        <AudienceBreakdownPanel card={card} />
+        <ReactionSignalsPanel card={card} />
+        <RelatedTrendsPanel card={card} />
       </div>
     </div>
   );
@@ -556,21 +964,6 @@ function SectionLabel({ children }) {
       fontSize: 11, fontWeight: 600, letterSpacing: "0.12em",
       textTransform: "uppercase", color: "var(--tr-muted)",
     }}>{children}</div>
-  );
-}
-
-function SourceIcon({ type }) {
-  const size = 28;
-  const c = {
-    x: { bg: "var(--tr-fg)", fg: "var(--tr-bg)", icon: <IconX size={12} /> },
-    insta: { bg: "var(--tr-card-2)", fg: "var(--tr-fg)", icon: <IconAt size={14} /> },
-    naver: { bg: "var(--tr-green)", fg: "#fff", icon: <IconChart size={14} /> },
-  }[type] || { bg: "var(--tr-card-2)", fg: "var(--tr-fg)", icon: <IconLink size={14} /> };
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: 8, background: c.bg, color: c.fg,
-      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-    }}>{c.icon}</div>
   );
 }
 
