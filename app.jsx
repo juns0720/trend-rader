@@ -122,6 +122,7 @@ function App() {
 
   let userScreen;
   if (tab === "home") userScreen = <HomeScreen layoutMode={effectiveUserLayout} onTab={setTab} onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
+  else if (tab === "shorts") userScreen = <ShortsScreen layoutMode={effectiveUserLayout} onCard={setDetailId} />;
   else if (tab === "search") userScreen = <SearchScreen layoutMode={effectiveUserLayout} onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
   else if (tab === "bookmarks") userScreen = <BookmarksScreen layoutMode={effectiveUserLayout} bookmarks={bookmarks} toggleBookmark={toggleBookmark} onCard={setDetailId} />;
   else if (tab === "profile") userScreen = <ProfileScreen layoutMode={effectiveUserLayout} onAdmin={() => setMode("admin")} />;
@@ -224,6 +225,7 @@ function App() {
 function DesktopUserNav({ tab, onTab }) {
   const tabs = [
     { k: "home", label: "홈" },
+    { k: "shorts", label: "숏폼" },
     { k: "search", label: "검색" },
     { k: "bookmarks", label: "북마크" },
     { k: "profile", label: "설정" },

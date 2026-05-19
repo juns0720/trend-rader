@@ -1304,6 +1304,466 @@ function SectionLabel({ children }) {
   );
 }
 
+// ─── Shorts Feed ──────────────────────────────────────────────
+function ShortsScreen({ layoutMode = "mobile", onCard }) {
+  const { CARDS, DEBATES = [], SHORTS_FEED = [] } = window.TR_DATA;
+  const [votesByDebateId, setVotesByDebateId] = useState({});
+  const items = SHORTS_FEED.map(item => {
+    if (item.type === "debate") {
+      const debate = DEBATES.find(d => d.id === item.debateId);
+      return debate ? { ...item, debate } : null;
+    }
+    const card = CARDS.find(c => c.id === item.cardId);
+    return card ? { ...item, card } : null;
+  }).filter(Boolean);
+
+  const vote = (debateId, side) => {
+    setVotesByDebateId(prev => ({ ...prev, [debateId]: side }));
+  };
+
+  return (
+    <div style={{
+      height: layoutMode === "desktop" ? "calc(100vh - 62px)" : layoutMode === "tablet" ? "calc(100vh - 84px)" : "100%",
+      minHeight: layoutMode === "desktop" ? 680 : "100%",
+      maxWidth: layoutMode === "mobile" ? "100%" : 520,
+      margin: layoutMode === "mobile" ? 0 : "0 auto",
+      overflowY: "auto",
+      scrollSnapType: "y mandatory",
+      scrollbarWidth: "none",
+      msOverflowStyle: "none",
+      background: "var(--tr-bg)",
+    }} className="tr-no-scrollbar">
+      {items.map(item => item.type === "debate" ? (
+        <ShortsDebateSlide
+          key={item.id}
+          debate={item.debate}
+          selected={votesByDebateId[item.debate.id]}
+          onVote={vote}
+          layoutMode={layoutMode}
+        />
+      ) : (
+        <ShortsTrendSlide
+          key={item.id}
+          card={item.card}
+          onCard={onCard}
+          layoutMode={layoutMode}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ShortsTrendSlide({ card, onCard, layoutMode }) {
+  const metrics = getReproductionMetrics(card);
+  const hashtags = card.relatedTrends?.hashtags?.slice(0, 3) || [`#${card.category}`, "#오늘의트렌드"];
+  return (
+    <section style={shortsSlideStyle(layoutMode)}>
+      <div style={shortsSlideInnerStyle}>
+        <ShortsSlideBackdrop cover={card.cover} />
+        <div style={shortsContentStyle(layoutMode)}>
+          <div style={{ padding: "0 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 11, color: "var(--tr-muted)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                SHORTS RADAR
+              </div>
+              <div style={{ marginTop: 3, fontSize: 18, fontWeight: 900, letterSpacing: "-0.04em" }}>지금 넘겨보는 트렌드</div>
+            </div>
+            <span style={{
+              padding: "7px 10px", borderRadius: 100, background: "rgba(255,255,255,0.72)",
+              border: "1px solid var(--tr-line)", fontSize: 11.5, fontWeight: 800,
+              color: "var(--tr-muted)", backdropFilter: "blur(10px)",
+            }}>#{card.rank}</span>
+          </div>
+
+          <div style={{ padding: "14px 20px 0", display: "grid", gridTemplateColumns: "1fr 52px", gap: 14, alignItems: "start" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
+                <TimingPill timing={card.timing} />
+                <StageBadge card={card} inline />
+                <span style={{
+                  display: "inline-flex", alignItems: "center", padding: "3px 8px",
+                  borderRadius: 100, background: "rgba(255,255,255,0.72)", color: "var(--tr-muted)",
+                  border: "1px solid var(--tr-line)", fontSize: 10.5, fontWeight: 900,
+                  backdropFilter: "blur(10px)",
+                }}>{card.macroCategory || card.category}</span>
+              </div>
+              <h1 style={{
+                margin: 0, fontSize: 31, lineHeight: 1.1, fontWeight: 900,
+                letterSpacing: "-0.05em",
+              }}>{card.title}</h1>
+              <p style={{
+                margin: "12px 0 0", fontSize: 14.5, lineHeight: 1.55,
+                color: "var(--tr-muted)", fontWeight: 600, letterSpacing: "-0.015em",
+              }}>{card.what}</p>
+              <div style={{ marginTop: 13, display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {hashtags.map(tag => <ShortsHash key={tag}>{tag}</ShortsHash>)}
+              </div>
+            </div>
+            <ShortsActionRail likes={formatShortCount(metrics.total)} comments={formatShortCount(card.community?.comments?.length || 0)} shares={formatShortCount(metrics.last7dCount || 0)} />
+          </div>
+
+          <div style={{ padding: "14px 20px 0" }}>
+            <div style={shortsGlassPanelStyle}>
+              <ShortsMetric label="재생산" value={formatShortCount(metrics.total)} />
+              <ShortsMetric label="24h" value={`${metrics.last24hNew >= 0 ? "+" : ""}${metrics.last24hNew}`} tone={metrics.last24hNew >= 0 ? "hot" : "cool"} />
+              <ShortsMetric label="순위" value={`#${card.rank}`} />
+            </div>
+          </div>
+
+          <div style={{ padding: "14px 20px 96px" }}>
+            <button onClick={() => onCard(card.id)} style={{
+              width: "100%", border: 0, borderRadius: 100, padding: "15px 18px",
+              background: "var(--tr-fg)", color: "var(--tr-bg)", fontSize: 15,
+              fontWeight: 900, letterSpacing: "-0.02em", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+              상세 분석 보기 <IconChevronRight size={17} />
+            </button>
+            <div style={{ marginTop: 12, textAlign: "center", fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 700 }}>
+              위로 스와이프 · 다음 트렌드
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ShortsDebateSlide({ debate, selected, onVote, layoutMode }) {
+  const baseTotal = debate.participants || 0;
+  const leftBase = Math.round(baseTotal * debate.leftPercent / 100);
+  const rightBase = Math.max(0, baseTotal - leftBase);
+  const leftVotes = leftBase + (selected === "left" ? 1 : 0);
+  const rightVotes = rightBase + (selected === "right" ? 1 : 0);
+  const total = Math.max(1, leftVotes + rightVotes);
+  const leftPercent = Math.round(leftVotes / total * 100);
+  const rightPercent = 100 - leftPercent;
+  return (
+    <section style={shortsSlideStyle(layoutMode)}>
+      <div style={shortsSlideInnerStyle}>
+        <ShortsSlideBackdrop cover={debate.cover} />
+        <div style={shortsContentStyle(layoutMode)}>
+          <div style={{ padding: "0 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={debatePillStyle("var(--tr-blue)", "rgba(49,130,246,0.12)")}>OPINION</span>
+                <span style={debatePillStyle("var(--tr-yellow)", "rgba(255,179,0,0.16)")}>투표 쇼츠</span>
+              </div>
+              <div style={{ marginTop: 8, fontSize: 12.5, color: "var(--tr-muted)", fontWeight: 800 }}>
+                {formatParticipants(total)} 참여중
+              </div>
+            </div>
+            <span style={{
+              padding: "7px 10px", borderRadius: 100, background: "rgba(255,255,255,0.72)",
+              border: "1px solid var(--tr-line)", fontSize: 11.5, fontWeight: 900,
+              backdropFilter: "blur(10px)",
+            }}>{debate.category}</span>
+          </div>
+
+          <div style={{ padding: "14px 20px 0", display: "grid", gridTemplateColumns: "1fr 52px", gap: 14 }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 31, lineHeight: 1.1, fontWeight: 900, letterSpacing: "-0.05em" }}>
+                {debate.title}
+              </h1>
+              <p style={{
+                margin: "12px 0 0", fontSize: 14.5, lineHeight: 1.55,
+                color: "var(--tr-muted)", fontWeight: 600, letterSpacing: "-0.015em",
+              }}>{debate.subtitle}</p>
+            </div>
+            <ShortsActionRail likes={debate.likes} comments={debate.comments} shares={debate.shares} />
+          </div>
+
+          <div style={{ padding: "14px 20px 96px" }}>
+            <div style={{
+              display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "center",
+            }}>
+              <DebateChoicePill
+                selected={selected === "left"}
+                color="var(--tr-blue)"
+                label={debate.leftLabel}
+                percent={leftPercent}
+                onClick={() => onVote(debate.id, "left")}
+              />
+              <span style={{ color: "var(--tr-muted)", fontSize: 12, fontWeight: 900 }}>vs</span>
+              <DebateChoicePill
+                selected={selected === "right"}
+                color="var(--tr-red)"
+                label={debate.rightLabel}
+                percent={rightPercent}
+                onClick={() => onVote(debate.id, "right")}
+              />
+            </div>
+
+            <div style={{
+              marginTop: 12, padding: "13px 14px", borderRadius: 16,
+              background: "rgba(255,255,255,0.82)", border: "1px solid var(--tr-line)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.05)", backdropFilter: "blur(14px)",
+            }}>
+              <div style={{
+                marginBottom: 10, color: "var(--tr-muted)", fontSize: 11,
+                fontWeight: 900, letterSpacing: "0.09em", textTransform: "uppercase",
+              }}>인기 댓글 1개</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{
+                  width: 32, height: 32, borderRadius: 100, background: "var(--tr-fg)", color: "var(--tr-bg)",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900,
+                }}>{debate.featuredComment.author.slice(0, 2).toUpperCase()}</span>
+                <strong style={{ fontSize: 13.5 }}>{debate.featuredComment.author}</strong>
+                <span style={shortsSmallPill}>{debate.featuredComment.badge}</span>
+                <span style={{ marginLeft: "auto", color: "var(--tr-muted)", fontSize: 11.5, fontWeight: 600 }}>{debate.featuredComment.timeAgo}</span>
+              </div>
+              <p style={{ margin: "9px 0 0", color: "var(--tr-muted)", fontSize: 13, lineHeight: 1.55, fontWeight: 600 }}>
+                {debate.featuredComment.text}
+              </p>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {debate.hashtags.map(tag => <ShortsHash key={tag}>{tag}</ShortsHash>)}
+            </div>
+
+            <button style={{
+              width: "100%", marginTop: 14, border: 0, borderRadius: 100, padding: "15px 18px",
+              background: "var(--tr-fg)", color: "var(--tr-bg)", fontSize: 15,
+              fontWeight: 900, letterSpacing: "-0.02em", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+              반응 보러가기 <IconChevronRight size={17} />
+            </button>
+            <div style={{ marginTop: 12, textAlign: "center", fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 700 }}>
+              위로 스와이프 · 다음 이슈
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ShortsActionRail({ likes, comments, shares }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingTop: 4 }}>
+      <ShortsAction Icon={IconHeart} value={likes} />
+      <ShortsAction Icon={IconMessage} value={comments} />
+      <ShortsAction Icon={IconShare} value={shares} />
+    </div>
+  );
+}
+
+function ShortsSlideBackdrop({ cover }) {
+  if (!cover) return null;
+  const { hue, sat, lum, label } = cover;
+  const bg = `hsl(${hue} ${sat}% ${Math.min(92, lum + 10)}%)`;
+  const bg2 = `hsl(${(hue + 28) % 360} ${Math.max(30, sat - 18)}% ${Math.max(58, lum - 4)}%)`;
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+      <div style={{
+        position: "absolute", top: 36, left: "50%", transform: "translateX(-50%) rotate(-8deg)",
+        width: 360, height: 250, borderRadius: 42,
+        background: `linear-gradient(145deg, ${bg}, ${bg2})`,
+        opacity: 0.2, filter: "blur(24px)",
+      }} />
+      <div style={{
+        position: "absolute", top: 74, left: "50%", transform: "translateX(-50%)",
+        width: 270, textAlign: "center", color: "var(--tr-fg)",
+        fontFamily: "'Space Grotesk', 'Pretendard', sans-serif",
+        fontSize: 42, fontWeight: 900, letterSpacing: "-0.06em", lineHeight: 0.92,
+        opacity: 0.045, whiteSpace: "pre-line",
+      }}>{label}</div>
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0) 34%, var(--tr-bg) 86%)",
+      }} />
+    </div>
+  );
+}
+
+function ShortsMetric({ label, value, tone }) {
+  return (
+    <div style={{ padding: "10px 8px", borderRadius: 12, background: "rgba(255,255,255,0.72)", minWidth: 0 }}>
+      <div style={{
+        color: tone === "hot" ? "var(--tr-red)" : tone === "cool" ? "var(--tr-blue)" : "var(--tr-fg)",
+        fontSize: 17, fontWeight: 900, fontFamily: "'Space Grotesk', sans-serif",
+        letterSpacing: "-0.04em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>{value}</div>
+      <div style={{ marginTop: 4, color: "var(--tr-muted)", fontSize: 10.5, fontWeight: 900 }}>{label}</div>
+    </div>
+  );
+}
+
+function ShortsAction({ Icon, value }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "var(--tr-muted)" }}>
+      <span style={{
+        width: 38, height: 38, borderRadius: 100, background: "var(--tr-card-2)",
+        display: "flex", alignItems: "center", justifyContent: "center", color: "var(--tr-fg)",
+      }}><Icon size={18} /></span>
+      <span style={{ fontSize: 11, fontWeight: 900, fontFamily: "'Space Grotesk', sans-serif" }}>{value}</span>
+    </div>
+  );
+}
+
+function DebatePercent({ value, label, color, align = "left" }) {
+  return (
+    <div style={{ textAlign: align, minWidth: 0 }}>
+      <div style={{ color, fontSize: 28, fontWeight: 900, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.06em" }}>
+        {value}%
+      </div>
+      <div style={{ marginTop: 2, color, fontSize: 12, fontWeight: 900, letterSpacing: "-0.02em" }}>{label}</div>
+    </div>
+  );
+}
+
+function DebateArgumentCard({ title, items, color, bg }) {
+  return (
+    <div style={{ padding: 12, borderRadius: 12, background: bg, border: `1px solid ${color}` }}>
+      <div style={{ color, fontSize: 12.5, fontWeight: 900, marginBottom: 8 }}>{title}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {items.slice(0, 3).map(item => (
+          <div key={item} style={{ color: "var(--tr-fg)", fontSize: 12, lineHeight: 1.45, fontWeight: 650 }}>
+            <span style={{ color }}>•</span> {item}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DebateVoteButton({ selected, color, label, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      border: `1px solid ${selected ? color : "var(--tr-line)"}`,
+      background: selected ? color : "var(--tr-card-2)",
+      color: selected ? "#fff" : "var(--tr-fg)",
+      borderRadius: 100, padding: "14px 10px", cursor: "pointer",
+      fontSize: 13.5, fontWeight: 900, letterSpacing: "-0.02em",
+    }}>
+      {selected ? "투표했습니다" : label}
+    </button>
+  );
+}
+
+function DebateChoicePill({ selected, color, label, percent, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      minWidth: 0,
+      border: `1px solid ${selected ? color : "var(--tr-line)"}`,
+      background: selected ? color : "rgba(255,255,255,0.82)",
+      color: selected ? "#fff" : "var(--tr-fg)",
+      borderRadius: 16,
+      padding: "12px 10px",
+      cursor: "pointer",
+      textAlign: "left",
+      boxShadow: selected ? `0 10px 24px ${color}33` : "0 8px 24px rgba(0,0,0,0.04)",
+      backdropFilter: "blur(14px)",
+    }}>
+      <div style={{
+        color: selected ? "#fff" : color,
+        fontSize: 24, fontWeight: 900, fontFamily: "'Space Grotesk', sans-serif",
+        letterSpacing: "-0.06em", lineHeight: 1,
+      }}>{percent}%</div>
+      <div style={{
+        marginTop: 5, fontSize: 12, fontWeight: 900, lineHeight: 1.25,
+        letterSpacing: "-0.02em", overflowWrap: "anywhere",
+      }}>{label}</div>
+    </button>
+  );
+}
+
+function ShortsHash({ children }) {
+  return (
+    <span style={{
+      padding: "7px 9px", borderRadius: 100, background: "var(--tr-card-2)",
+      color: "var(--tr-muted)", fontSize: 11.5, fontWeight: 800,
+    }}>{children}</span>
+  );
+}
+
+function shortsSlideStyle(layoutMode) {
+  const slideHeight = layoutMode === "desktop" ? "calc(100vh - 62px)" : layoutMode === "tablet" ? "calc(100vh - 84px)" : "100%";
+  return {
+    height: slideHeight,
+    minHeight: slideHeight,
+    scrollSnapAlign: "start",
+    display: "flex",
+    flexDirection: "column",
+    background: "var(--tr-bg)",
+    position: "relative",
+    overflow: "auto",
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+  };
+}
+
+const shortsSlideInnerStyle = {
+  height: "100%",
+  minHeight: "100%",
+  display: "flex",
+  flexDirection: "column",
+  position: "relative",
+  zIndex: 1,
+};
+
+function shortsContentStyle(layoutMode) {
+  return {
+    minHeight: "100%",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    paddingTop: layoutMode === "mobile" ? 130 : 96,
+    paddingBottom: layoutMode === "mobile" ? 6 : 12,
+    position: "relative",
+    zIndex: 2,
+  };
+}
+
+const shortsGlassPanelStyle = {
+  padding: 15,
+  borderRadius: 18,
+  background: "rgba(255,255,255,0.76)",
+  border: "1px solid var(--tr-line)",
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1fr",
+  gap: 8,
+  boxShadow: "0 12px 36px rgba(0,0,0,0.05)",
+  backdropFilter: "blur(14px)",
+};
+
+const shortsSmallPill = {
+  padding: "4px 7px",
+  borderRadius: 100,
+  background: "var(--tr-card-2)",
+  color: "var(--tr-muted)",
+  fontSize: 10.5,
+  fontWeight: 900,
+};
+
+function debatePillStyle(color, bg) {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 9px",
+    borderRadius: 100,
+    background: bg,
+    color,
+    fontSize: 11,
+    fontWeight: 900,
+    letterSpacing: "0.03em",
+  };
+}
+
+function formatParticipants(value) {
+  if (value >= 10000) return `${(value / 10000).toFixed(1)}만`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+  return String(value);
+}
+
+function formatShortCount(value) {
+  const n = Number(value) || 0;
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
+
 // ─── Search Screen ────────────────────────────────────────────
 function SearchScreen({ onCard, bookmarks, toggleBookmark }) {
   const { CARDS, CATEGORIES } = window.TR_DATA;
@@ -1581,6 +2041,7 @@ function Toggle({ on: init = false, onChange }) {
 function BottomNav({ tab, onTab, fixed = false }) {
   const tabs = [
     { k: "home", label: "홈", Icon: IconHome },
+    { k: "shorts", label: "숏폼", Icon: IconPlay },
     { k: "search", label: "검색", Icon: IconSearch },
     { k: "bookmarks", label: "북마크", Icon: IconBookmark },
     { k: "profile", label: "설정", Icon: IconUser },
@@ -1595,10 +2056,10 @@ function BottomNav({ tab, onTab, fixed = false }) {
         <button key={t.k} onClick={() => onTab(t.k)} style={{
           flex: 1, border: 0, background: "transparent", cursor: "pointer",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-          padding: "8px 0", color: tab === t.k ? "var(--tr-fg)" : "var(--tr-muted)",
+          padding: "7px 0", color: tab === t.k ? "var(--tr-fg)" : "var(--tr-muted)",
         }}>
-          <t.Icon size={22} sw={tab === t.k ? 2 : 1.6} />
-          <span style={{ fontSize: 10.5, fontWeight: tab === t.k ? 600 : 500, letterSpacing: "-0.01em" }}>
+          <t.Icon size={21} sw={tab === t.k ? 2 : 1.6} />
+          <span style={{ fontSize: 10, fontWeight: tab === t.k ? 700 : 500, letterSpacing: "-0.01em" }}>
             {t.label}
           </span>
         </button>
@@ -1608,6 +2069,6 @@ function BottomNav({ tab, onTab, fixed = false }) {
 }
 
 Object.assign(window, {
-  Onboarding, HomeScreen, CardDetail, SearchScreen, BookmarksScreen, ProfileScreen, BottomNav,
+  Onboarding, HomeScreen, CardDetail, ShortsScreen, SearchScreen, BookmarksScreen, ProfileScreen, BottomNav,
   Cover, TimingPill, TrafficLight, SectionLabel, RealtimeStrip, CompactCardItem,
 });

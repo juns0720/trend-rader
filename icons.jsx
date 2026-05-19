@@ -37,11 +37,14 @@ const IconLayers = (p) => <IconBase {...p}><path d="M12 3l9 5-9 5-9-5z"/><path d
 const IconX = (p) => <IconBase {...p} sw={2}><path d="M4 4l16 16M20 4L4 20"/></IconBase>;
 const IconAt = (p) => <IconBase {...p}><circle cx="12" cy="12" r="4"/><path d="M16 12v2a3 3 0 0 0 6 0v-2a10 10 0 1 0-4 8"/></IconBase>;
 const IconChart = (p) => <IconBase {...p}><path d="M4 20V8M10 20V4M16 20v-9M22 20H2"/></IconBase>;
+const IconPlay = (p) => <IconBase {...p}><path d="M8 5v14l11-7z"/></IconBase>;
+const IconHeart = (p) => <IconBase {...p}><path d="M20.8 5.7a5 5 0 0 0-7.1 0L12 7.4l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21l8.8-8.2a5 5 0 0 0 0-7.1z"/></IconBase>;
+const IconMessage = (p) => <IconBase {...p}><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2h9A3.5 3.5 0 0 1 20 5.5v6A3.5 3.5 0 0 1 16.5 15H10l-5 5v-5.4A3.5 3.5 0 0 1 4 12z"/></IconBase>;
 
 Object.assign(window, {
   IconHome, IconSearch, IconBookmark, IconBookmarkFilled, IconUser, IconBack, IconShare,
   IconLink, IconFilter, IconClose, IconCheck, IconChevronRight, IconChevronDown,
   IconUp, IconDown, IconDash, IconSettings, IconPlus, IconEdit, IconTrash,
   IconSparkle, IconClock, IconEye, IconFlame, IconRadar, IconMore, IconLayers,
-  IconX, IconAt, IconChart,
+  IconX, IconAt, IconChart, IconPlay, IconHeart, IconMessage,
 });
