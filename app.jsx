@@ -4,7 +4,7 @@ const { useState: useStateApp, useEffect: useEffectApp } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "palette": ["#0a0a0a", "#ffffff", "#f4f4f4"],
-  "accent": "#C8FF3D",
+  "accent": "#4353FF",
   "font": "Pretendard",
   "cardStyle": "image",
   "dark": false,
@@ -18,7 +18,7 @@ const PALETTES = {
   cool:      ["#0d1117", "#f6f8fa", "#eaeef2"],
 };
 
-const ACCENT_OPTS = ["#C8FF3D", "#FF4500", "#3182F6", "#0a0a0a", "#FFD400"];
+const ACCENT_OPTS = ["#4353FF", "#3182F6", "#C8FF3D", "#FF4500", "#0a0a0a", "#FFD400"];
 const FONT_OPTS = ["Pretendard", "SUIT", "Wanted Sans"];
 const CARD_STYLES = ["image", "minimal", "compact"];
 
@@ -75,11 +75,15 @@ function parseHex(h) {
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const pathMode = () => window.location.pathname.startsWith("/admin") ? "admin" : "user";
+  const pathMode = () => {
+    const params = new URLSearchParams(window.location.search);
+    return window.location.pathname.startsWith("/admin") || params.get("mode") === "admin" ? "admin" : "user";
+  };
   const initialMode = pathMode();
   const [mode, setModeState] = useStateApp(initialMode); // user | admin
   const [tab, setTab] = useStateApp("home"); // user nav
   const [adminTab, setAdminTab] = useStateApp("dash");
+  const [adminSearch, setAdminSearch] = useStateApp("");
   const [detailId, setDetailId] = useStateApp(null);
   const [bookmarks, setBookmarks] = useStateApp(new Set(["c01", "c03", "c06"]));
   const [onboarding, setOnboarding] = useStateApp(t.showOnboarding);
@@ -100,8 +104,12 @@ function App() {
 
   const setMode = (nextMode) => {
     setModeState(nextMode);
-    const nextPath = nextMode === "admin" ? "/admin" : "/";
-    if (window.location.pathname !== nextPath) {
+    const params = new URLSearchParams(window.location.search);
+    if (nextMode === "admin") params.set("mode", "admin");
+    else params.delete("mode");
+    const nextPath = `/${params.toString() ? `?${params.toString()}` : ""}`;
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (currentPath !== nextPath) {
       window.history.pushState({}, "", nextPath);
     }
     if (nextMode === "user") setDetailId(null);
@@ -131,28 +139,29 @@ function App() {
 
   const handleUseAsSource = (handle) => {
     setQuickAddSource(handle);
-    setAdminTab("add");
+    setAdminTab("inbox");
   };
 
   let adminScreen;
   if (adminTab === "dash") adminScreen = <AdminDashboard onTab={setAdminTab} />;
-  else if (adminTab === "add") adminScreen = <AdminQuickAdd sourceHandle={quickAddSource} onClearSource={() => setQuickAddSource(null)} />;
-  else if (adminTab === "review") adminScreen = <AdminReview />;
-  else if (adminTab === "influencer") adminScreen = <AdminInfluencers onUseAsSource={handleUseAsSource} />;
+  else if (adminTab === "inbox") adminScreen = <AdminCollectionInbox sourceFocus={quickAddSource} onClearSource={() => setQuickAddSource(null)} searchQuery={adminSearch} />;
+  else if (adminTab === "review") adminScreen = <AdminCandidateReview searchQuery={adminSearch} />;
+  else if (adminTab === "sources") adminScreen = <AdminSources onUseAsSource={handleUseAsSource} searchQuery={adminSearch} />;
 
   return (
     <React.Fragment>
       <style>{css}</style>
       {mode === "admin" ? (
         <AdminDesktopShell>
-          <div className="tr-screen" style={{
-            minHeight: "100vh",
-            background: "var(--tr-bg)", color: "var(--tr-fg)",
-            fontFamily: "var(--tr-font)",
-          }}>
-            <AdminTopBar tab={adminTab} onTab={setAdminTab} onExit={() => setMode("user")} />
+          <AdminShell
+            tab={adminTab}
+            onTab={setAdminTab}
+            onExit={() => setMode("user")}
+            searchQuery={adminSearch}
+            onSearchChange={setAdminSearch}
+          >
             {adminScreen}
-          </div>
+          </AdminShell>
         </AdminDesktopShell>
       ) : usePhoneFrame ? (
         <FrameStage>
@@ -223,31 +232,75 @@ function App() {
 }
 
 function DesktopUserNav({ tab, onTab }) {
-  const tabs = [
-    { k: "home", label: "홈" },
-    { k: "shorts", label: "숏폼" },
-    { k: "search", label: "검색" },
-    { k: "bookmarks", label: "북마크" },
-    { k: "profile", label: "설정" },
-  ];
   return (
     <div style={{
       position: "sticky", top: 0, zIndex: 20,
-      background: "var(--tr-bg)", borderBottom: "1px solid var(--tr-line)",
-      padding: "14px 28px",
+      background: "#FFFFFF",
+      color: "#111318",
+      borderBottom: "1px solid #E4E7EF",
+      padding: "0 28px",
     }}>
-      <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ marginRight: 14, fontSize: 15, fontWeight: 900, letterSpacing: "-0.03em" }}>Trend Radar</div>
-        {tabs.map(item => (
-          <button key={item.k} onClick={() => onTab(item.k)} style={{
-            padding: "8px 12px", border: 0, borderRadius: 100,
-            background: tab === item.k ? "var(--tr-fg)" : "var(--tr-card-2)",
-            color: tab === item.k ? "var(--tr-bg)" : "var(--tr-fg)",
-            cursor: "pointer", fontSize: 13, fontWeight: 800,
-          }}>
-            {item.label}
-          </button>
-        ))}
+      <div style={{ maxWidth: 1320, height: 74, margin: "0 auto", display: "flex", alignItems: "center", gap: 26 }}>
+        <button onClick={() => onTab("home")} style={{
+          marginRight: 8,
+          border: 0,
+          background: "transparent",
+          color: "#111318",
+          cursor: "pointer",
+          fontSize: 24,
+          fontWeight: 950,
+          letterSpacing: "-0.07em",
+          padding: 0,
+        }}>Trend Radar</button>
+        <button onClick={() => onTab("home")} style={{
+          height: 74,
+          border: 0,
+          borderBottom: tab === "home" ? "2px solid #4353FF" : "2px solid transparent",
+          background: "transparent",
+          color: "#111318",
+          cursor: "pointer",
+          fontSize: 14,
+          fontWeight: 950,
+        }}>
+          트렌드 레터
+        </button>
+        <button onClick={() => onTab("search")} style={{
+          height: 74,
+          border: 0,
+          borderBottom: tab === "search" ? "2px solid #4353FF" : "2px solid transparent",
+          background: "transparent",
+          color: tab === "search" ? "#111318" : "#4B5563",
+          cursor: "pointer",
+          fontSize: 14,
+          fontWeight: tab === "search" ? 950 : 850,
+        }}>
+          탐색하기
+        </button>
+        <button onClick={() => onTab("profile")} style={{
+          marginLeft: "auto",
+          border: 0,
+          background: "#4353FF",
+          color: "#fff",
+          borderRadius: 0,
+          padding: "8px 13px",
+          cursor: "pointer",
+          fontSize: 12.5,
+          fontWeight: 950,
+        }}>
+          구독하기
+        </button>
+        <button onClick={() => onTab("profile")} style={{
+          border: "1px solid #111318",
+          background: "transparent",
+          color: "#111318",
+          borderRadius: 0,
+          padding: "7px 12px",
+          cursor: "pointer",
+          fontSize: 12.5,
+          fontWeight: 950,
+        }}>
+          마이페이지
+        </button>
       </div>
     </div>
   );
@@ -383,9 +436,9 @@ function TweaksUI({ t, setTweak, mode, setMode, setTab, setAdminTab, setOnboardi
         <TweakSelect label="운영자 화면" value={"current"}
                      options={[
                        { value: "dash", label: "대시보드" },
-                       { value: "add", label: "등록" },
-                       { value: "review", label: "검수" },
-                       { value: "influencer", label: "인플루언서" },
+                       { value: "inbox", label: "수집 큐" },
+                       { value: "review", label: "후보 검수" },
+                       { value: "sources", label: "소스" },
                      ]}
                      onChange={(v) => setAdminTab(v)} />
       )}
