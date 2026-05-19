@@ -2,11 +2,63 @@
 
 const { useState, useEffect, useRef, useMemo } = React;
 
+// ─── API 설정 — 키를 입력하면 실데이터로 전환됩니다 ───────────
+const API_CONFIG = {
+  YOUTUBE_KEY: "",
+  NAVER_CLIENT_ID: "",
+  NAVER_CLIENT_SECRET: "",
+  NAVER_PROXY: "",  // 서버리스 프록시 URL (예: https://your-app.vercel.app/api/naver)
+};
+
+async function fetchYouTubeVideos(keyword, apiKey) {
+  if (!apiKey) return null;
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=5&regionCode=KR&relevanceLanguage=ko&key=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.items || []).map(item => ({
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      videoId: item.id.videoId,
+      thumbnail: item.snippet.thumbnails?.medium?.url,
+      link: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+    }));
+  } catch { return null; }
+}
+
+async function fetchNaverTrend(keyword, clientId, clientSecret, proxyUrl) {
+  if (!clientId || !clientSecret || !proxyUrl) return null;
+  try {
+    const today = new Date();
+    const end = today.toISOString().slice(0, 10);
+    const start = new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Naver-Client-Id": clientId,
+        "X-Naver-Client-Secret": clientSecret,
+      },
+      body: JSON.stringify({
+        startDate: start, endDate: end, timeUnit: "date",
+        keywordGroups: [{ groupName: keyword, keywords: [keyword] }],
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const points = (data.results?.[0]?.data || []).map(p => ({
+      date: p.period.slice(5), value: Math.round(p.ratio),
+    }));
+    return points.length ? points : null;
+  } catch { return null; }
+}
+
 // ─── Shared bits ──────────────────────────────────────────────
 const TIMING = {
-  green:  { dot: "var(--tr-green)",  text: "지금 타도 됨" },
-  yellow: { dot: "var(--tr-yellow)", text: "빠르면 좋음" },
-  red:    { dot: "var(--tr-red)",    text: "이미 늦은 듯" },
+  green:  { dot: "var(--tr-green)",  text: "선점 타이밍" },
+  yellow: { dot: "var(--tr-yellow)", text: "서두르면 좋아" },
+  red:    { dot: "var(--tr-red)",    text: "이미 피크" },
 };
 
 function TimingPill({ timing, size = "sm" }) {
@@ -158,10 +210,37 @@ function Onboarding({ onDone }) {
 }
 
 // ─── Home ─────────────────────────────────────────────────────
-function HomeScreen({ onCard, bookmarks, toggleBookmark }) {
+function HomeScreen({ layoutMode = "mobile", onTab, onCard, bookmarks, toggleBookmark }) {
   const { CARDS, REALTIME, CATEGORIES } = window.TR_DATA;
   const [cat, setCat] = useState("전체");
-  const filtered = cat === "전체" ? CARDS : CARDS.filter(c => c.category === cat);
+  const filtered = cat === "전체" ? CARDS : CARDS.filter(c => (c.macroCategory || c.category) === cat);
+
+  if (layoutMode === "desktop") {
+    return (
+      <DesktopHomeScreen
+        cat={cat}
+        setCat={setCat}
+        filtered={filtered}
+        onTab={onTab}
+        onCard={onCard}
+        bookmarks={bookmarks}
+        toggleBookmark={toggleBookmark}
+      />
+    );
+  }
+
+  if (layoutMode === "tablet") {
+    return (
+      <TabletHomeScreen
+        cat={cat}
+        setCat={setCat}
+        filtered={filtered}
+        onCard={onCard}
+        bookmarks={bookmarks}
+        toggleBookmark={toggleBookmark}
+      />
+    );
+  }
 
   return (
     <div style={{ padding: "8px 0 100px" }}>
@@ -174,6 +253,9 @@ function HomeScreen({ onCard, bookmarks, toggleBookmark }) {
           <h1 style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1 }}>
             오늘의 트렌드
           </h1>
+          <div style={{ marginTop: 7, fontSize: 13, lineHeight: 1.35, color: "var(--tr-muted)", fontWeight: 600, letterSpacing: "-0.015em" }}>
+            지금 SNS에서 확산 중
+          </div>
         </div>
         <div style={{ display: "flex", gap: 4, marginTop: 6, color: "var(--tr-fg)" }}>
           <button className="tr-icon-btn"><IconSearch size={20} /></button>
@@ -213,11 +295,226 @@ function HomeScreen({ onCard, bookmarks, toggleBookmark }) {
   );
 }
 
-function RealtimeStrip({ data }) {
+function DesktopHomeScreen({ cat, setCat, filtered, onTab, onCard, bookmarks, toggleBookmark }) {
+  const { CARDS, REALTIME, CATEGORIES, STAGES } = window.TR_DATA;
+  const savedCards = CARDS.filter(card => bookmarks.has(card.id)).slice(0, 4);
+  const stageCounts = Object.keys(STAGES).map(stage => ({
+    stage,
+    count: filtered.filter(card => card.stage === stage).length,
+    meta: STAGES[stage],
+  }));
+  return (
+    <div style={{
+      minHeight: "100vh",
+      padding: "28px 28px 40px",
+    }}>
+      <div style={{
+        maxWidth: 1480,
+        margin: "0 auto",
+        display: "grid",
+        gridTemplateColumns: "280px minmax(0, 1fr) 320px",
+        gap: 24,
+        alignItems: "start",
+      }}>
+        <aside style={{ position: "sticky", top: 28, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--tr-muted)", fontWeight: 700 }}>2026년 5월 18일 · 월</div>
+            <h1 style={{ margin: "8px 0 0", fontSize: 34, fontWeight: 800, letterSpacing: "-0.045em", lineHeight: 1.05 }}>
+              오늘의 트렌드
+            </h1>
+            <div style={{ marginTop: 9, fontSize: 14, color: "var(--tr-muted)", fontWeight: 700, lineHeight: 1.45 }}>
+              지금 SNS에서 확산 중
+            </div>
+          </div>
+
+          <PanelLike title="카테고리">
+            <div style={{ display: "grid", gap: 7 }}>
+              {CATEGORIES.map(category => (
+                <button key={category} onClick={() => setCat(category)} style={{
+                  padding: "10px 12px", border: "1px solid var(--tr-line)", borderRadius: 8,
+                  background: cat === category ? "var(--tr-fg)" : "var(--tr-bg)",
+                  color: cat === category ? "var(--tr-bg)" : "var(--tr-fg)",
+                  cursor: "pointer", fontSize: 13.5, fontWeight: 800,
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}>
+                  <span>{category}</span>
+                  <span>{category === "전체" ? CARDS.length : CARDS.filter(card => (card.macroCategory || card.category) === category).length}</span>
+                </button>
+              ))}
+            </div>
+          </PanelLike>
+
+          <PanelLike title="탐색">
+            <div style={{ display: "grid", gap: 8 }}>
+              <DesktopNavButton label="검색" onClick={() => onTab?.("search")} />
+              <DesktopNavButton label="북마크" onClick={() => onTab?.("bookmarks")} />
+              <DesktopNavButton label="설정" onClick={() => onTab?.("profile")} />
+            </div>
+          </PanelLike>
+        </aside>
+
+        <main>
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "end",
+            gap: 16, marginBottom: 18,
+          }}>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--tr-muted)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {cat}
+              </div>
+              <h2 style={{ margin: "5px 0 0", fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em" }}>
+                지금 뜨는 트렌드 {filtered.length}개
+              </h2>
+            </div>
+          </div>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 24,
+          }}>
+            {filtered.map((card, i) => (
+              <CardFeedItem key={card.id} card={card} index={i}
+                            bookmarked={bookmarks.has(card.id)}
+                            onBookmark={() => toggleBookmark(card.id)}
+                            onClick={() => onCard(card.id)} />
+            ))}
+          </div>
+        </main>
+
+        <aside style={{ position: "sticky", top: 28, display: "flex", flexDirection: "column", gap: 16 }}>
+          <RealtimeStrip data={REALTIME} embedded />
+          <PanelLike title="지금 분포">
+            <div style={{ display: "grid", gap: 10 }}>
+              {stageCounts.map(item => (
+                <div key={item.stage}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontWeight: 800 }}>
+                    <span>{item.meta.short}</span>
+                    <span>{item.count}</span>
+                  </div>
+                  <div style={{ marginTop: 6, height: 7, borderRadius: 100, background: "var(--tr-bg)", overflow: "hidden" }}>
+                    <div style={{
+                      width: `${filtered.length ? (item.count / filtered.length) * 100 : 0}%`,
+                      height: "100%", borderRadius: 100, background: item.meta.color,
+                    }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </PanelLike>
+          <PanelLike title="북마크">
+            {savedCards.length ? (
+              <div style={{ display: "grid", gap: 10 }}>
+                {savedCards.map(card => (
+                  <button key={card.id} onClick={() => onCard(card.id)} style={{
+                    border: 0, borderRadius: 8, background: "var(--tr-bg)", color: "var(--tr-fg)",
+                    cursor: "pointer", padding: 10, textAlign: "left",
+                  }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.3 }}>{card.title}</div>
+                    <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 700 }}>
+                      {card.stageMeta?.short} · 재생산 {getReproductionMetrics(card).total.toLocaleString()}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: "var(--tr-muted)", lineHeight: 1.5 }}>저장한 카드가 없습니다.</div>
+            )}
+          </PanelLike>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function TabletHomeScreen({ cat, setCat, filtered, onCard, bookmarks, toggleBookmark }) {
+  const { CATEGORIES, REALTIME } = window.TR_DATA;
+  return (
+    <div style={{ padding: "24px 24px 110px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20 }}>
+        <div>
+          <div style={{ fontSize: 12, color: "var(--tr-muted)", fontWeight: 700 }}>2026년 5월 18일 · 월</div>
+          <h1 style={{ margin: "6px 0 0", fontSize: 34, fontWeight: 800, letterSpacing: "-0.045em" }}>
+            오늘의 트렌드
+          </h1>
+          <div style={{ marginTop: 7, fontSize: 14, color: "var(--tr-muted)", fontWeight: 700 }}>
+            지금 SNS에서 확산 중
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <RealtimeStrip data={REALTIME} embedded />
+      </div>
+
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "20px 0 10px" }} className="tr-no-scrollbar">
+        {CATEGORIES.map(category => (
+          <button key={category} onClick={() => setCat(category)} style={{
+            padding: "8px 14px", borderRadius: 100, border: 0, cursor: "pointer",
+            fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap",
+            background: cat === category ? "var(--tr-fg)" : "var(--tr-card-2)",
+            color: cat === category ? "var(--tr-bg)" : "var(--tr-fg)",
+          }}>{category}</button>
+        ))}
+      </div>
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: 24,
+        marginTop: 12,
+      }}>
+        {filtered.map((card, i) => (
+          <CardFeedItem key={card.id} card={card} index={i}
+                        bookmarked={bookmarks.has(card.id)}
+                        onBookmark={() => toggleBookmark(card.id)}
+                        onClick={() => onCard(card.id)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PanelLike({ title, children }) {
+  return (
+    <section style={{
+      padding: 16, borderRadius: 8,
+      background: "var(--tr-card-2)",
+      border: "1px solid var(--tr-line)",
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 900, color: "var(--tr-muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+        {title}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function DesktopNavButton({ label, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: "11px 12px", border: "1px solid var(--tr-line)", borderRadius: 8,
+      background: "var(--tr-bg)", color: "var(--tr-fg)", cursor: "pointer",
+      fontSize: 13.5, fontWeight: 800, textAlign: "left",
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+    }}>
+      {label}
+      <IconChevronRight size={15} />
+    </button>
+  );
+}
+
+function RealtimeStrip({ data, embedded = false }) {
   const [showAll, setShowAll] = useState(false);
   const shown = showAll ? data : data.slice(0, 5);
   return (
-    <div style={{ margin: "0 20px", padding: "14px 16px", background: "var(--tr-card-2)", borderRadius: 18 }}>
+    <div style={{
+      margin: embedded ? 0 : "0 20px",
+      padding: "14px 16px",
+      background: "var(--tr-card-2)",
+      borderRadius: embedded ? 8 : 18,
+      border: embedded ? "1px solid var(--tr-line)" : 0,
+    }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{
@@ -230,7 +527,7 @@ function RealtimeStrip({ data }) {
             }} />
           </span>
           <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.01em" }}>
-            실시간 트렌드 · 09:30 업데이트
+            지금 HOT · 09:30 업데이트
           </div>
         </div>
         <button onClick={() => setShowAll(s => !s)} style={{
@@ -263,6 +560,9 @@ function RealtimeRow({ row, idx }) {
         fontVariantNumeric: "tabular-nums",
       }}>{row.rank}</span>
       <span style={{ flex: 1, fontSize: 14, fontWeight: 500, letterSpacing: "-0.015em" }}>{row.kw}</span>
+      <span style={{ fontSize: 11, color: "var(--tr-muted)", fontWeight: 700 }}>
+        재생산
+      </span>
       <span style={{ minWidth: 32, textAlign: "right" }}>{deltaUI()}</span>
     </div>
   );
@@ -276,6 +576,7 @@ function CardFeedItem({ card, index, bookmarked, onBookmark, onClick }) {
 }
 
 function ImageCardItem({ card, bookmarked, onBookmark, onClick }) {
+  const metrics = getReproductionMetrics(card);
   return (
     <div onClick={onClick} style={{ cursor: "pointer" }}>
       <div style={{ position: "relative" }}>
@@ -283,6 +584,9 @@ function ImageCardItem({ card, bookmarked, onBookmark, onClick }) {
         {/* timing badge top-left */}
         <div style={{ position: "absolute", top: 14, left: 14 }}>
           <TimingPill timing={card.timing} />
+        </div>
+        <div style={{ position: "absolute", top: 14, right: 58 }}>
+          <StageBadge card={card} />
         </div>
         {/* bookmark top-right */}
         <button onClick={(e) => { e.stopPropagation(); onBookmark(); }} style={{
@@ -301,7 +605,7 @@ function ImageCardItem({ card, bookmarked, onBookmark, onClick }) {
           borderRadius: 100, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em",
           backdropFilter: "blur(8px)",
         }}>
-          #{card.rank} · {card.category}
+          #{card.rank} · {card.macroCategory || card.category}
         </div>
       </div>
       <div style={{ padding: "14px 4px 0" }}>
@@ -313,19 +617,20 @@ function ImageCardItem({ card, bookmarked, onBookmark, onClick }) {
           letterSpacing: "-0.01em",
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}>{card.what}</p>
+        <ReproductionSampleGrid card={card} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
           <span style={{
             fontSize: 11, color: "var(--tr-muted)", fontWeight: 500,
           }}>{card.publishedAt}</span>
           <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
           <span style={{ fontSize: 11, color: "var(--tr-muted)", fontWeight: 500 }}>
-            트렌드 점수 {card.score}
+            재생산 {metrics.total.toLocaleString()}
           </span>
           <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
           <span style={{
             fontSize: 11, fontWeight: 600,
-            color: card.velocity.startsWith("+") ? "var(--tr-red)" : "var(--tr-blue)",
-          }}>{card.velocity}</span>
+            color: metrics.last24hNew >= 0 ? "var(--tr-red)" : "var(--tr-blue)",
+          }}>24h {metrics.last24hNew >= 0 ? "+" : ""}{metrics.last24hNew}</span>
         </div>
       </div>
     </div>
@@ -333,6 +638,7 @@ function ImageCardItem({ card, bookmarked, onBookmark, onClick }) {
 }
 
 function MinimalCardItem({ card, bookmarked, onBookmark, onClick }) {
+  const metrics = getReproductionMetrics(card);
   return (
     <div onClick={onClick} style={{
       cursor: "pointer", padding: "20px 0", borderTop: "1px solid var(--tr-line)",
@@ -360,17 +666,19 @@ function MinimalCardItem({ card, bookmarked, onBookmark, onClick }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 36 }}>
         <TimingPill timing={card.timing} />
         <span style={{ fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 500 }}>{card.category}</span>
+        <StageBadge card={card} inline />
         <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
         <span style={{
           fontSize: 11.5, fontWeight: 600,
-          color: card.velocity.startsWith("+") ? "var(--tr-red)" : "var(--tr-blue)",
-        }}>{card.velocity}</span>
+          color: metrics.last24hNew >= 0 ? "var(--tr-red)" : "var(--tr-blue)",
+        }}>재생산 {metrics.total.toLocaleString()} · 24h {metrics.last24hNew >= 0 ? "+" : ""}{metrics.last24hNew}</span>
       </div>
     </div>
   );
 }
 
 function CompactCardItem({ card, bookmarked, onBookmark, onClick }) {
+  const metrics = getReproductionMetrics(card);
   return (
     <div onClick={onClick} style={{
       cursor: "pointer", display: "flex", gap: 14, alignItems: "flex-start",
@@ -381,20 +689,89 @@ function CompactCardItem({ card, bookmarked, onBookmark, onClick }) {
       <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
           <TimingPill timing={card.timing} />
+          <StageBadge card={card} inline />
         </div>
         <h2 style={{
           margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.25,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}>{card.title}</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 500 }}>
-          <span>{card.category}</span>
+          <span>{card.macroCategory || card.category}</span>
           <span style={{ width: 3, height: 3, borderRadius: 100, background: "var(--tr-muted)", opacity: 0.5 }} />
-          <span style={{ color: card.velocity.startsWith("+") ? "var(--tr-red)" : "var(--tr-blue)", fontWeight: 600 }}>{card.velocity}</span>
+          <span style={{ color: metrics.last24hNew >= 0 ? "var(--tr-red)" : "var(--tr-blue)", fontWeight: 600 }}>24h {metrics.last24hNew >= 0 ? "+" : ""}{metrics.last24hNew}</span>
+        </div>
+        <div style={{ marginTop: 5, fontSize: 11, color: "var(--tr-muted)", fontWeight: 600 }}>
+          재생산 {metrics.total.toLocaleString()}
         </div>
       </div>
       <button onClick={(e) => { e.stopPropagation(); onBookmark(); }} style={{
         background: "transparent", border: 0, color: "var(--tr-fg)", cursor: "pointer", padding: 4, marginTop: 2,
       }}>{bookmarked ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}</button>
+    </div>
+  );
+}
+
+function getReproductionMetrics(card) {
+  const metrics = card.reproductionMetrics || {};
+  const total = (metrics.instagramPosts || 0) + (metrics.tiktokVideos || 0);
+  return {
+    total,
+    last24hNew: metrics.last24hNew || 0,
+  };
+}
+
+function StageBadge({ card, inline = false }) {
+  const meta = card.stageMeta || window.TR_DATA.STAGES?.[card.stage];
+  if (!meta) return null;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      padding: inline ? "3px 7px" : "5px 10px",
+      borderRadius: 100,
+      background: meta.bg,
+      color: meta.color,
+      border: `1px solid ${meta.color}`,
+      fontSize: inline ? 10.5 : 11,
+      fontWeight: 800,
+      letterSpacing: "-0.01em",
+      whiteSpace: "nowrap",
+      backdropFilter: inline ? undefined : "blur(8px)",
+    }}>
+      {meta.short}
+    </span>
+  );
+}
+
+function ReproductionSampleGrid({ card }) {
+  const samples = card.reproductionSamples || [];
+  if (!samples.length) return null;
+  return (
+    <div style={{
+      display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+      gap: 5, marginTop: 12,
+    }}>
+      {samples.map((sample, i) => (
+        <div key={i} style={{
+          aspectRatio: "1 / 1",
+          minHeight: 50,
+          borderRadius: 8,
+          background: `hsl(${sample.hue} ${sample.sat}% ${sample.lum}%)`,
+          position: "relative",
+          overflow: "hidden",
+        }}>
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.34), transparent 58%)",
+          }} />
+          <div style={{
+            position: "absolute", left: 6, bottom: 5,
+            fontSize: 9.5, color: "#fff", fontWeight: 900,
+            textShadow: "0 1px 2px rgba(0,0,0,0.45)",
+          }}>
+            {sample.platform === "instagram" ? "IG" : "TT"}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -607,7 +984,23 @@ function TrendMetric({ label, value, tone }) {
 }
 
 function TrendVerificationCard({ card }) {
-  const trend = card.naverTrend;
+  const [trend, setTrend] = React.useState(card.naverTrend);
+  const [isLive, setIsLive] = React.useState(false);
+
+  React.useEffect(() => {
+    const { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, NAVER_PROXY } = API_CONFIG;
+    if (!NAVER_CLIENT_ID || !card.keyword) return;
+    fetchNaverTrend(card.keyword, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, NAVER_PROXY)
+      .then(points => {
+        if (points) { setTrend(prev => ({ ...prev, points })); setIsLive(true); }
+      });
+  }, [card.id]);
+
+  const filters = trend?.audienceBreakdown ? {
+    gender: trend.audienceBreakdown.gender || [],
+    age: trend.audienceBreakdown.age || [],
+  } : null;
+
   if (!trend) {
     return (
       <div style={{ padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
@@ -638,403 +1031,52 @@ function TrendVerificationCard({ card }) {
       <TrendLineChart points={trend.points} />
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <TrendMetric label="전일 대비" value={trend.dailyChange || "-"} tone={String(trend.dailyChange).startsWith("-") ? "cool" : "hot"} />
-        <TrendMetric label="누가 찾나" value={trend.audience || "-"} />
+        <TrendMetric label="주 검색층" value={trend.audience || "-"} />
       </div>
-      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--tr-muted)" }}>
-        <IconClock size={12} />
-        <span>최근 14일 일간 추이 · {trend.updatedAt} 갱신</span>
-      </div>
-    </div>
-  );
-}
-
-
-function normalizeAudienceFilters(trend) {
-  if (!trend?.audienceBreakdown) return null;
-  return {
-    gender: trend.audienceBreakdown.gender || [],
-    age: trend.audienceBreakdown.age || [],
-  };
-}
-
-function combineAudienceSelection(filters, genderLabel, ageLabel) {
-  const gender = genderLabel === "전체" ? null : filters.gender.find(item => item.label === genderLabel);
-  const age = ageLabel === "전체" ? null : filters.age.find(item => item.label === ageLabel);
-  if (gender && age) {
-    return {
-      label: `${gender.label} · ${age.label}`,
-      share: Math.max(1, Math.round((Number(gender.share) * Number(age.share)) / 100)),
-    };
-  }
-  if (gender) {
-    return { label: gender.label, share: Number(gender.share) || 0 };
-  }
-  if (age) {
-    return { label: age.label, share: Number(age.share) || 0 };
-  }
-  return { label: "전체", share: 100 };
-}
-
-function AudienceFilterGroup({ title, options, selected, onSelect }) {
-  return (
-    <div>
-      <div style={{ fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 800, marginBottom: 8 }}>{title}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-        {options.map(option => {
-          const isSelected = selected === option;
-          return (
-            <button key={option} onClick={() => onSelect(option)} style={{
-              border: 0, borderRadius: 100, padding: "8px 13px",
-              background: isSelected ? "var(--tr-fg)" : "var(--tr-bg)",
-              color: isSelected ? "var(--tr-bg)" : "var(--tr-fg)",
-              fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer",
-              transition: "background 0.2s, color 0.2s, transform 0.15s",
-              transform: isSelected ? "scale(1.05)" : "scale(1)",
-            }}>
-              {option}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AudienceSelectionBar({ selection }) {
-  const targetWidth = Math.max(4, Math.min(100, selection.share));
-  const [barWidth, setBarWidth] = React.useState(0);
-  const [displayNum, setDisplayNum] = React.useState(0);
-  const rafRef = React.useRef(null);
-  const fromRef = React.useRef(0);
-
-  React.useEffect(() => {
-    const t = setTimeout(() => setBarWidth(targetWidth), 30);
-    return () => clearTimeout(t);
-  }, [targetWidth]);
-
-  React.useEffect(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    const from = fromRef.current;
-    const to = selection.share;
-    let t0 = null;
-    const duration = 650;
-
-    const tick = (ts) => {
-      if (!t0) t0 = ts;
-      const p = Math.min((ts - t0) / duration, 1);
-      const ease = 1 - Math.pow(1 - p, 3);
-      setDisplayNum(Math.round(from + (to - from) * ease));
-      if (p < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        fromRef.current = to;
-        rafRef.current = null;
-      }
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [selection.share]);
-
-  return (
-    <div style={{ marginTop: 18 }}>
-      <div style={{
-        padding: "18px 18px 16px", borderRadius: 18, background: "var(--tr-bg)",
-        position: "relative", overflow: "hidden",
-      }}>
-        {/* 배경 glow */}
-        <div style={{
-          position: "absolute", top: -50, right: -30, width: 140, height: 140, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(200,255,61,0.1) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
-
-        {/* 레이블 + 숫자 */}
-        <div style={{
-          display: "flex", alignItems: "flex-end", justifyContent: "space-between",
-          gap: 12, marginBottom: 18, position: "relative",
-        }}>
-          <div>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tr-muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 5 }}>
-              관심 비중
-            </div>
-            <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--tr-fg)", letterSpacing: "-0.02em" }}>
-              {selection.label}
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 1, fontVariantNumeric: "tabular-nums" }}>
-            <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: "-0.05em", color: "var(--tr-accent)", lineHeight: 1 }}>
-              {displayNum}
-            </span>
-            <span style={{ fontSize: 18, fontWeight: 800, color: "var(--tr-accent)", paddingBottom: 4 }}>%</span>
-          </div>
+      {filters && (filters.gender.length > 0 || filters.age.length > 0) && (
+        <SearcherDemographics filters={filters} />
+      )}
+      <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, color: "var(--tr-muted)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <IconClock size={12} />
+          <span>최근 14일 일간 추이 · {trend.updatedAt} 갱신</span>
         </div>
+        {isLive && <span style={{ fontSize: 10, fontWeight: 800, color: "var(--tr-green)", letterSpacing: "0.04em" }}>● 실데이터</span>}
+      </div>
+    </div>
+  );
+}
 
-        {/* 바 트랙 */}
-        <div style={{ position: "relative", height: 16 }}>
-          {/* 트랙 (overflow:hidden으로 shimmer 클리핑) */}
-          <div style={{
-            position: "absolute", top: "50%", left: 0, right: 0,
-            height: 9, borderRadius: 100, transform: "translateY(-50%)",
-            background: "rgba(255,255,255,0.07)", overflow: "hidden",
-          }}>
-            {/* 채움 바 */}
-            <div style={{
-              height: "100%", borderRadius: 100,
-              width: `${barWidth}%`,
-              background: "linear-gradient(90deg, #7AE000 0%, #C8FF3D 55%, #E5FF8A 100%)",
-              transition: "width 0.7s cubic-bezier(0.34, 1.4, 0.64, 1)",
-              position: "relative",
-            }}>
-              {/* Shimmer */}
+function SearcherDemographics({ filters }) {
+  const rows = [...filters.gender, ...filters.age];
+  return (
+    <div style={{ marginTop: 14, padding: "14px 16px", borderRadius: 14, background: "var(--tr-bg)" }}>
+      <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--tr-muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12 }}>
+        주요 검색층
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {rows.map(item => (
+          <div key={item.label}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontWeight: 800 }}>
+              <span>{item.label}</span>
+              <span>{item.share ?? item.value}%</span>
+            </div>
+            <div style={{ marginTop: 5, height: 6, borderRadius: 100, background: "var(--tr-line)", overflow: "hidden" }}>
               <div style={{
-                position: "absolute", inset: 0,
-                background: "linear-gradient(90deg, transparent 20%, rgba(255,255,255,0.38) 50%, transparent 80%)",
-                backgroundSize: "200% 100%",
-                animation: "tr-shimmer 2.4s ease-in-out infinite",
+                width: `${item.share ?? item.value}%`, height: "100%",
+                borderRadius: 100, background: "var(--tr-accent)",
               }} />
             </div>
           </div>
-
-          {/* 끝 도트 인디케이터 */}
-          <div style={{
-            position: "absolute", top: "50%",
-            left: `${barWidth}%`,
-            transform: "translate(-50%, -50%)",
-            width: 16, height: 16, borderRadius: "50%",
-            background: "#C8FF3D",
-            animation: "tr-glow-breathe 2s ease-in-out infinite",
-            transition: "left 0.7s cubic-bezier(0.34, 1.4, 0.64, 1)",
-            zIndex: 2,
-          }} />
-        </div>
-
-        {/* 눈금 */}
-        <div style={{
-          display: "flex", justifyContent: "space-between",
-          marginTop: 8, fontSize: 10, fontWeight: 600, color: "var(--tr-muted)",
-        }}>
-          <span>0%</span>
-          <span>50%</span>
-          <span>100%</span>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function AudienceBreakdownPanel({ card }) {
-  const filters = normalizeAudienceFilters(card.naverTrend);
-  const [selectedGender, setSelectedGender] = useState("전체");
-  const [selectedAge, setSelectedAge] = useState("전체");
-  if (!filters || (!filters.gender.length && !filters.age.length)) {
-    return (
-      <div>
-        <SectionLabel>검색층 분석</SectionLabel>
-        <div style={{
-          marginTop: 12, padding: 18, borderRadius: 18, background: "var(--tr-card-2)",
-          fontSize: 14, color: "var(--tr-muted)", lineHeight: 1.5,
-        }}>
-          검색층 데이터 수집 전
-        </div>
-      </div>
-    );
-  }
-  const genderOptions = ["전체", ...filters.gender.map(item => item.label)];
-  const ageOptions = ["전체", ...filters.age.map(item => item.label)];
-  const selection = combineAudienceSelection(filters, selectedGender, selectedAge);
-  return (
-    <div>
-      <SectionLabel>검색층 분석</SectionLabel>
-      <div style={{ marginTop: 12, padding: 18, borderRadius: 18, background: "var(--tr-card-2)" }}>
-        <div style={{ fontSize: 12, color: "var(--tr-muted)", fontWeight: 700, lineHeight: 1.45 }}>
-          성별과 나이대를 선택하면 해당 검색층의 관심 비중을 볼 수 있어요
-        </div>
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
-          <AudienceFilterGroup title="성별" options={genderOptions} selected={selectedGender} onSelect={setSelectedGender} />
-          <AudienceFilterGroup title="나이대" options={ageOptions} selected={selectedAge} onSelect={setSelectedAge} />
-        </div>
-        <AudienceSelectionBar selection={selection} />
-      </div>
-    </div>
-  );
-}
 
-const COMMUNITY_POS = ["좋", "대박", "찍어야", "탈게", "가야", "선점", "재미", "맛있", "바로", "해야", "빠르", "영상감", "달려"];
-const COMMUNITY_NEG = ["이미", "많아", "늦", "포화", "별로", "식상", "피크", "지났", "차별화 힘", "걱정", "힘들"];
-function classifyComment(text) {
-  if (COMMUNITY_POS.some(w => text.includes(w))) return "positive";
-  if (COMMUNITY_NEG.some(w => text.includes(w))) return "negative";
-  return "neutral";
-}
 
-const TONE_COLOR = { positive: "var(--tr-green)", negative: "var(--tr-red)", neutral: "var(--tr-muted)" };
-const SUFFIX = {
-  positive: " 최근 긍정 반응이 더 늘고 있어요.",
-  negative: " 콘텐츠 포화를 우려하는 시각도 함께 올라오고 있어요.",
-  neutral:  " 다양한 시각이 공존하고 있어요.",
-};
 
-function SentimentBar({ label, value, color }) {
-  const [barW, setBarW] = React.useState(0);
-  React.useEffect(() => {
-    const t = setTimeout(() => setBarW(value), 30);
-    return () => clearTimeout(t);
-  }, [value]);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ width: 32, fontSize: 11.5, fontWeight: 700, color: "var(--tr-muted)", flexShrink: 0 }}>{label}</div>
-      <div style={{ flex: 1, height: 7, borderRadius: 100, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
-        <div style={{
-          height: "100%", borderRadius: 100, background: color,
-          width: `${barW}%`, transition: "width 0.7s cubic-bezier(0.25,1,0.5,1)",
-        }} />
-      </div>
-      <div style={{ width: 30, fontSize: 12, fontWeight: 800, color, textAlign: "right", flexShrink: 0 }}>{value}%</div>
-    </div>
-  );
-}
-
-function CommunityPanel({ card }) {
-  const community = card.community;
-  if (!community) return null;
-
-  const storageKey = `community_${card.id}`;
-  const [userComments, setUserComments] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey) || "[]"); } catch { return []; }
-  });
-  const [inputText, setInputText] = React.useState("");
-  const [analyzing, setAnalyzing] = React.useState(false);
-  const [sentiment, setSentiment] = React.useState({ ...community.sentiment });
-  const [summaryExtra, setSummaryExtra] = React.useState("");
-
-  const handleSubmit = () => {
-    const text = inputText.trim();
-    if (!text || analyzing) return;
-    setAnalyzing(true);
-    const tone = classifyComment(text);
-    setTimeout(() => {
-      const total = sentiment.positive + sentiment.negative + sentiment.neutral + userComments.length + 1;
-      const baseTotal = community.sentiment.positive + community.sentiment.negative + community.sentiment.neutral;
-      const posCount = Math.round((community.sentiment.positive / 100) * baseTotal) + userComments.filter(c => c.tone === "positive").length + (tone === "positive" ? 1 : 0);
-      const negCount = Math.round((community.sentiment.negative / 100) * baseTotal) + userComments.filter(c => c.tone === "negative").length + (tone === "negative" ? 1 : 0);
-      const neuCount = Math.round((community.sentiment.neutral / 100) * baseTotal) + userComments.filter(c => c.tone === "neutral").length + (tone === "neutral" ? 1 : 0);
-      const newTotal = posCount + negCount + neuCount;
-      const newPos = Math.round((posCount / newTotal) * 100);
-      const newNeg = Math.round((negCount / newTotal) * 100);
-      const newNeu = 100 - newPos - newNeg;
-      setSentiment({ positive: newPos, negative: newNeg, neutral: Math.max(0, newNeu) });
-      if (!summaryExtra) setSummaryExtra(SUFFIX[tone]);
-      const newComment = { id: Date.now(), author: "나", text, tone, timeAgo: "방금 전", isMe: true };
-      const updated = [newComment, ...userComments];
-      setUserComments(updated);
-      try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
-      setInputText("");
-      setAnalyzing(false);
-    }, 1500);
-  };
-
-  const allComments = [...userComments, ...community.comments];
-
-  return (
-    <div>
-      <SectionLabel>크리에이터 반응</SectionLabel>
-      <div style={{ marginTop: 12, borderRadius: 18, background: "var(--tr-card-2)", overflow: "hidden", position: "relative" }}>
-
-        {/* 분석 중 오버레이 */}
-        {analyzing && (
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 10,
-            background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)",
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
-            borderRadius: 18,
-          }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>AI가 반응을 분석하고 있어요</div>
-            <div style={{ display: "flex", gap: 6 }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{
-                  width: 7, height: 7, borderRadius: "50%", background: "var(--tr-accent)",
-                  animation: `tr-dot-bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-                }} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ padding: 18 }}>
-          {/* 감성 바 3개 */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            <SentimentBar label="긍정" value={sentiment.positive} color="var(--tr-green)" />
-            <SentimentBar label="부정" value={sentiment.negative} color="var(--tr-red)" />
-            <SentimentBar label="중립" value={sentiment.neutral}  color="var(--tr-muted)" />
-          </div>
-
-          {/* AI 요약 */}
-          <div style={{
-            marginTop: 14, padding: "11px 14px", borderRadius: 12, background: "var(--tr-bg)",
-            fontSize: 12.5, lineHeight: 1.55, color: "var(--tr-muted)", fontStyle: "italic",
-          }}>
-            {community.summary}{summaryExtra}
-          </div>
-
-          {/* 댓글 목록 */}
-          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-            {allComments.map((c, i) => (
-              <div key={c.id ?? i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: "50%", background: TONE_COLOR[c.tone] || "var(--tr-muted)",
-                  flexShrink: 0, marginTop: 5,
-                }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--tr-fg)" }}>{c.author}</span>
-                    {c.isMe && (
-                      <span style={{
-                        fontSize: 9.5, fontWeight: 800, color: "var(--tr-accent-fg)",
-                        background: "var(--tr-accent)", borderRadius: 4, padding: "1px 5px",
-                        letterSpacing: "0.04em",
-                      }}>나</span>
-                    )}
-                    <span style={{ fontSize: 11, color: "var(--tr-muted)", marginLeft: "auto", flexShrink: 0 }}>{c.timeAgo}</span>
-                  </div>
-                  <div style={{ fontSize: 13, lineHeight: 1.45, color: "var(--tr-fg)" }}>{c.text}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 댓글 입력 */}
-        <div style={{
-          borderTop: "1px solid var(--tr-line)", padding: "12px 16px",
-          display: "flex", gap: 10, alignItems: "flex-end",
-          background: "var(--tr-bg)",
-        }}>
-          <textarea
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
-            placeholder="이 트렌드, 어떻게 생각해요?"
-            rows={1}
-            style={{
-              flex: 1, border: 0, background: "transparent", resize: "none",
-              fontSize: 13, color: "var(--tr-fg)", fontFamily: "inherit",
-              outline: "none", lineHeight: 1.5, padding: "4px 0",
-            }}
-          />
-          <button onClick={handleSubmit} disabled={!inputText.trim() || analyzing} style={{
-            border: 0, borderRadius: 10, padding: "7px 14px",
-            background: inputText.trim() && !analyzing ? "var(--tr-accent)" : "var(--tr-line)",
-            color: inputText.trim() && !analyzing ? "var(--tr-accent-fg)" : "var(--tr-muted)",
-            fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer",
-            transition: "background .2s, color .2s", flexShrink: 0,
-          }}>등록</button>
-        </div>
-
-      </div>
-    </div>
-  );
-}
 
 function RelatedChipGroup({ title, items, tone = "soft" }) {
   return (
@@ -1082,6 +1124,7 @@ function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
   const card = window.TR_DATA.CARDS.find(c => c.id === cardId);
   if (!card) return null;
   const bookmarked = bookmarks.has(card.id);
+  const metrics = getReproductionMetrics(card);
   return (
     <div style={{ paddingBottom: 100, animation: "tr-slide-in .25s ease-out" }}>
       <div style={{ position: "relative" }}>
@@ -1108,7 +1151,10 @@ function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
         }}>{bookmarked ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}</button>
 
         <div style={{ position: "absolute", left: 20, right: 20, bottom: 24, color: "#fff" }}>
-          <div style={{ marginBottom: 10 }}><TimingPill timing={card.timing} /></div>
+          <div style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <TimingPill timing={card.timing} />
+            <StageBadge card={card} inline />
+          </div>
           <h1 style={{
             margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", lineHeight: 1.1,
             textShadow: "0 2px 16px rgba(0,0,0,0.25)",
@@ -1118,18 +1164,120 @@ function CardDetail({ cardId, onBack, bookmarks, toggleBookmark }) {
             <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
             <span>{card.category}</span>
             <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
-            <span>점수 {card.score}</span>
+            <span>재생산 {metrics.total.toLocaleString()}</span>
             <span style={{ width: 3, height: 3, borderRadius: 100, background: "#fff", opacity: 0.5 }} />
-            <span>{card.velocity}</span>
+            <span>24h {metrics.last24hNew >= 0 ? "+" : ""}{metrics.last24hNew}</span>
           </div>
         </div>
       </div>
 
       <div style={{ padding: "24px 20px 0", display: "flex", flexDirection: "column", gap: 28 }}>
+        <StageSummaryPanel card={card} />
         <TrendVerificationCard card={card} />
-        <AudienceBreakdownPanel card={card} />
-        <CommunityPanel card={card} />
+        <YoutubePanel card={card} />
         <RelatedTrendsPanel card={card} />
+      </div>
+    </div>
+  );
+}
+
+function StageSummaryPanel({ card }) {
+  const metrics = getReproductionMetrics(card);
+  const meta = card.stageMeta || window.TR_DATA.STAGES?.[card.stage];
+  return (
+    <div style={{
+      padding: 18, borderRadius: 18, background: "var(--tr-card-2)",
+      display: "flex", flexDirection: "column", gap: 14,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div>
+          <SectionLabel>트렌드 단계</SectionLabel>
+          <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+            <StageBadge card={card} />
+            <span style={{ fontSize: 13, color: "var(--tr-muted)", fontWeight: 700 }}>
+              {meta?.label}
+            </span>
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.03em" }}>
+            {metrics.total.toLocaleString()}
+          </div>
+          <div style={{ marginTop: 2, fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 700 }}>재생산 콘텐츠</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 13.5, color: "var(--tr-muted)", lineHeight: 1.55, fontWeight: 600 }}>
+        {card.stageReason}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        <MetricTile label="Instagram" value={(card.reproductionMetrics?.instagramPosts || 0).toLocaleString()} />
+        <MetricTile label="TikTok" value={(card.reproductionMetrics?.tiktokVideos || 0).toLocaleString()} />
+        <MetricTile label="24h" value={`${metrics.last24hNew >= 0 ? "+" : ""}${metrics.last24hNew}`} tone={metrics.last24hNew >= 0 ? "hot" : "cool"} />
+      </div>
+      <div style={{ fontSize: 11, color: "var(--tr-muted)", opacity: 0.6, lineHeight: 1.5 }}>
+        Instagram · TikTok 재생산 수는 추정값입니다. 실데이터 수집은 Apify 연동 필요.
+      </div>
+    </div>
+  );
+}
+
+function MetricTile({ label, value, tone }) {
+  return (
+    <div style={{
+      padding: "12px 10px", borderRadius: 12, background: "var(--tr-bg)",
+      minWidth: 0,
+    }}>
+      <div style={{
+        fontSize: 16, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif",
+        color: tone === "hot" ? "var(--tr-red)" : tone === "cool" ? "var(--tr-blue)" : "var(--tr-fg)",
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>{value}</div>
+      <div style={{ marginTop: 4, fontSize: 10.5, color: "var(--tr-muted)", fontWeight: 800 }}>{label}</div>
+    </div>
+  );
+}
+
+function YoutubePanel({ card }) {
+  const [videos, setVideos] = React.useState(card.enrichment?.youtube || []);
+  const [isLive, setIsLive] = React.useState(false);
+
+  React.useEffect(() => {
+    const { YOUTUBE_KEY } = API_CONFIG;
+    if (!YOUTUBE_KEY || !card.keyword) return;
+    fetchYouTubeVideos(card.keyword, YOUTUBE_KEY).then(result => {
+      if (result && result.length > 0) { setVideos(result); setIsLive(true); }
+    });
+  }, [card.id]);
+
+  if (!videos.length) return null;
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <SectionLabel>유튜브 관련 영상</SectionLabel>
+        {isLive && <span style={{ fontSize: 10, fontWeight: 800, color: "var(--tr-green)", letterSpacing: "0.04em" }}>● 실데이터</span>}
+      </div>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }} className="tr-no-scrollbar">
+        {videos.map((item, i) => (
+          <a key={i} href={item.link || "#"} target="_blank" rel="noopener noreferrer" style={{
+            minWidth: 132, padding: 10, borderRadius: 12, background: "var(--tr-card-2)",
+            textDecoration: "none", color: "inherit", display: "block", flexShrink: 0,
+          }}>
+            {item.thumbnail ? (
+              <img src={item.thumbnail} alt="" style={{ width: "100%", height: 70, borderRadius: 8, objectFit: "cover", display: "block" }} />
+            ) : (
+              <div style={{
+                height: 70, borderRadius: 8,
+                background: `hsl(${item.thumbHue ?? 200} 70% 55%)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontSize: 11, fontWeight: 900,
+              }}>SHORTS</div>
+            )}
+            <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 800, lineHeight: 1.35 }}>{item.title}</div>
+            <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--tr-muted)", fontWeight: 700 }}>
+              {item.channel}{item.views ? ` · ${item.views}` : ""}
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   );
@@ -1163,8 +1311,8 @@ function SearchScreen({ onCard, bookmarks, toggleBookmark }) {
   const [cat, setCat] = useState("전체");
   const trending = ["얼먹젤리", "코스트코 망고푸딩", "칠리스 치즈스틱", "동결건조"];
   const filtered = CARDS.filter(c =>
-    (cat === "전체" || c.category === cat) &&
-    (q.trim() === "" || c.title.includes(q.trim()) || c.category.includes(q.trim()))
+    (cat === "전체" || (c.macroCategory || c.category) === cat) &&
+    (q.trim() === "" || c.title.includes(q.trim()) || c.what.includes(q.trim()) || (c.macroCategory || c.category).includes(q.trim()))
   );
   return (
     <div style={{ padding: "8px 0 100px" }}>
@@ -1430,7 +1578,7 @@ function Toggle({ on: init = false, onChange }) {
 }
 
 // ─── Bottom nav ──────────────────────────────────────────────
-function BottomNav({ tab, onTab }) {
+function BottomNav({ tab, onTab, fixed = false }) {
   const tabs = [
     { k: "home", label: "홈", Icon: IconHome },
     { k: "search", label: "검색", Icon: IconSearch },
@@ -1439,7 +1587,7 @@ function BottomNav({ tab, onTab }) {
   ];
   return (
     <div style={{
-      position: "absolute", bottom: 0, left: 0, right: 0,
+      position: fixed ? "fixed" : "absolute", bottom: 0, left: 0, right: 0,
       background: "var(--tr-bg)", borderTop: "1px solid var(--tr-line)",
       display: "flex", padding: "8px 4px 12px", zIndex: 20,
     }}>

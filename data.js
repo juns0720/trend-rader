@@ -4,7 +4,7 @@
 const CARDS = [
   {
     id: "c01",
-    title: "코스트코 떠먹는 망고푸딩",
+    title: "코스트코 1.2kg 망고푸딩, 왜 다들 사러 가냐면",
     category: "디저트",
     timing: "green", // 지금 타도 됨
     score: 8.4,
@@ -30,7 +30,7 @@ const CARDS = [
   },
   {
     id: "c02",
-    title: "버터떡",
+    title: "버터 범벅인데 왜 이렇게 맛있냐는 반응",
     category: "디저트",
     timing: "yellow",
     score: 6.9,
@@ -54,7 +54,7 @@ const CARDS = [
   },
   {
     id: "c03",
-    title: "얼먹젤리",
+    title: "편의점 젤리 하나가 요즘 진짜 장난 아님",
     category: "디저트",
     timing: "green",
     score: 8.1,
@@ -80,7 +80,7 @@ const CARDS = [
   },
   {
     id: "c04",
-    title: "두쫀쿠",
+    title: "두쫀쿠가 왜 지금 한물가는 중인지",
     category: "디저트",
     timing: "red",
     score: 4.2,
@@ -103,7 +103,7 @@ const CARDS = [
   },
   {
     id: "c05",
-    title: "초코바게트",
+    title: "초코바게트, 요즘 빵집마다 같이 떠오르는 이유",
     category: "디저트",
     timing: "yellow",
     score: 7.2,
@@ -127,7 +127,7 @@ const CARDS = [
   },
   {
     id: "c06",
-    title: "칠리스 치즈스틱",
+    title: "미국 레스토랑 메뉴가 한국 SNS를 장악한 방법",
     category: "식당",
     timing: "green",
     score: 8.7,
@@ -152,7 +152,7 @@ const CARDS = [
   },
   {
     id: "c07",
-    title: "촉촉한 황치즈칩",
+    title: "편의점 구석에서 조용히 품절 행진 중인 그것",
     category: "편의점",
     timing: "yellow",
     score: 6.4,
@@ -175,7 +175,7 @@ const CARDS = [
   },
   {
     id: "c08",
-    title: "동결건조 디저트",
+    title: "다이소 동결건조 디저트, 이렇게 뜰 줄 몰랐음",
     category: "디저트",
     timing: "green",
     score: 7.8,
@@ -197,6 +197,144 @@ const CARDS = [
     ],
     publishedAt: "오늘 09:18",
   },
+  // ─── Cards in newly-defined categories (for identity demo) ───
+  {
+    id: "c09",
+    title: "성수동 또 줄 섰나요, 이번엔 무지개 컨셉",
+    category: "플레이스",
+    timing: "green",
+    score: 8.0,
+    velocity: "+92%",
+    rank: 9,
+    cover: { hue: 320, sat: 80, lum: 65, label: "POPUP\nSEONGSU" },
+    what: "성수동에 일주일만 열리는 무지개 컬러 팝업스토어. 인증샷 명소로 빠르게 확산.",
+    why: "한정 운영 + 비주얼 강함 + 위치 접근성 → 인스타 인증 콘텐츠 폭증.",
+    angle: "외관 진입 컷 → 컬러별 포토존 → 굿즈 클로즈업. 줄 서기 팁 자막.",
+    hook: "성수동 이번 주에만 열어요",
+    platform: [
+      { p: "릴스", tip: "외관 → 내부 컬러존 → 굿즈 3단 구성" },
+      { p: "쇼츠", tip: "줄 길이 → 입장 → 첫 포토존" },
+    ],
+    caution: "주말 줄 1시간+. 평일 오전 추천 자막.",
+    sources: [
+      { type: "insta", label: "#성수동팝업 24h +540%", url: "#" },
+    ],
+    publishedAt: "오늘 09:50",
+  },
+  {
+    id: "c10",
+    title: "올 가을은 버건디 네일이 답이라는 분위기",
+    category: "패션·뷰티",
+    timing: "green",
+    score: 7.6,
+    velocity: "+48%",
+    rank: 10,
+    cover: { hue: 350, sat: 60, lum: 35, label: "BURGUNDY\nNAIL" },
+    what: "초가을 진입과 함께 다시 뜨는 딥 버건디 컬러 네일아트.",
+    why: "K-아이돌 공항패션 + 뷰티 인플루언서 다수 동시 게시.",
+    angle: "광택 vs 매트 비교, 손톱 모양별 추천 컷.",
+    hook: "가을엔 무조건 이 컬러래요",
+    platform: [
+      { p: "릴스", tip: "셀프네일 과정 + 완성 비교" },
+      { p: "쇼츠", tip: "톤별 5가지 비교 빠른 컷" },
+    ],
+    caution: "특정 브랜드 협찬 표기 명확히.",
+    sources: [
+      { type: "insta", label: "#버건디네일 +220%", url: "#" },
+    ],
+    publishedAt: "오늘 09:48",
+  },
+  {
+    id: "c11",
+    title: "아침마다 뛰는 사람들, 출퇴근 러닝 크루가 뜨는 이유",
+    category: "라이프스타일",
+    timing: "green",
+    score: 7.2,
+    velocity: "+38%",
+    rank: 11,
+    cover: { hue: 130, sat: 55, lum: 50, label: "RUN\nCREW" },
+    what: "아침/저녁 출퇴근 시간에 30분 가볍게 뛰는 러닝 크루 인증 콘텐츠 트렌드.",
+    why: "건강 + 일상 콘텐츠 결합. 무리 없는 강도라 진입 장벽 낮음.",
+    angle: "코스 추천 + 복장 + 페이스 자막. 30분 BGM 동기화.",
+    hook: "출근 전 30분이 하루를 바꿔요",
+    platform: [
+      { p: "릴스", tip: "GPS 트래킹 화면 + 풍경 컷 교차" },
+      { p: "쇼츠", tip: "타임랩스 + 마지막 한 줄 멘트" },
+    ],
+    caution: "초보 안전 멘트 1줄 권장.",
+    sources: [
+      { type: "insta", label: "#모닝러닝 +180%", url: "#" },
+    ],
+    publishedAt: "오늘 09:45",
+  },
+  {
+    id: "c12",
+    title: "갸자갸자 챌린지, 틱톡에서 24시간 만에 터짐",
+    category: "밈·챌린지",
+    timing: "green",
+    score: 8.8,
+    velocity: "+210%",
+    rank: 12,
+    cover: { hue: 280, sat: 90, lum: 60, label: "GYAZA\nCHALLENGE" },
+    what: "특정 노래 후렴구에 맞춰 둘이 마주보고 손동작 맞추는 틱톡 챌린지.",
+    why: "10대 사이에서 폭발적 확산. 영상 길이 짧고 진입 장벽 0.",
+    angle: "1차 시연 → 실패 → 성공 컷. 친구/가족과 함께 포맷.",
+    hook: "두 명만 있으면 5초 만에 가능",
+    platform: [
+      { p: "틱톡", tip: "원곡 사용 필수. #갸자갸자 태그" },
+      { p: "쇼츠", tip: "9:16, 30초 안에 시도→완성" },
+    ],
+    caution: "원곡 저작권 — 틱톡 내장 음원으로만.",
+    sources: [
+      { type: "x",     label: "@meme_kr 8.2만", url: "#" },
+      { type: "insta", label: "#갸자갸자 24h +890%", url: "#" },
+    ],
+    publishedAt: "오늘 09:42",
+  },
+  {
+    id: "c13",
+    title: "OOO 인터뷰 짤, 지금 모든 계정이 쓰는 중",
+    category: "인물·콘텐츠",
+    timing: "yellow",
+    score: 7.0,
+    velocity: "+28%",
+    rank: 13,
+    cover: { hue: 220, sat: 30, lum: 25, label: "MEME\nINTERVIEW" },
+    what: "최근 화제 인터뷰 영상에서 특정 표정·멘트가 짤로 잘려 재가공되는 트렌드.",
+    why: "원본 1회성이지만 패러디 가지 수가 많아 콘텐츠 수명 연장.",
+    angle: "원본 인용 + 자기 상황 패러디 자막 결합.",
+    hook: "이 표정 한 번만 보면 못 잊어요",
+    platform: [
+      { p: "릴스", tip: "원본 1초 + 자기 상황 4초" },
+    ],
+    caution: "초상권·맥락 왜곡 주의.",
+    sources: [
+      { type: "x", label: "@viral_kr 6.4만", url: "#" },
+    ],
+    publishedAt: "오늘 09:40",
+  },
+  {
+    id: "c14",
+    title: "노 메이크업이 트렌드에서 밀려나는 중",
+    category: "패션·뷰티",
+    timing: "red",
+    score: 4.5,
+    velocity: "-18%",
+    rank: 14,
+    cover: { hue: 30, sat: 25, lum: 75, label: "NO\nMAKEUP" },
+    what: "민낯 셀카 자연스럽게 올리는 트렌드. 한때 폭발했으나 현재 하향.",
+    why: "이미 포화 + 후속 콘텐츠 차별화 어려움.",
+    angle: "굳이 한다면 '루틴 공개' 같은 부가 정보 결합.",
+    hook: "그냥 셀카는 이제 별로래요",
+    platform: [
+      { p: "릴스", tip: "추천 안 함. 회고/리뷰 포맷만." },
+    ],
+    caution: "포화 시장 — 차별화 약하면 노출 거의 없음.",
+    sources: [
+      { type: "insta", label: "#노메이크업 -18%", url: "#" },
+    ],
+    publishedAt: "오늘 09:38",
+  },
 ];
 
 // Realtime trend ranking (similar to 실시간 검색어)
@@ -213,63 +351,129 @@ const REALTIME = [
   { rank: 10, kw: "콜드브루 젤리", delta: "▲ 1", deltaType: "up" },
 ];
 
-const CATEGORIES = ["전체", "디저트", "식당", "편의점", "음료"];
+// ─── Stage labels (re-production maturity) ───────────────────
+// 데이터랩 검색량 추이 + SNS 재생산 활동량 조합으로 4단계 분류.
+// 정체성("SNS에서 재생산되는 트렌드") 핵심 차별 라벨.
+const STAGES = {
+  early: {
+    key: "early",
+    label: "이제 막 뜨는 중",
+    short: "얼리",
+    desc: "검색은 아직 잔잔한데 SNS 쪽이 먼저 움직이는 중. 선점 여지 있어요.",
+    color: "var(--tr-blue)",
+    bg: "rgba(49,130,246,0.12)",
+  },
+  mainstream: {
+    key: "mainstream",
+    label: "한창 퍼지는 중",
+    short: "메인스트림",
+    desc: "검색이랑 SNS가 같이 오르는 중. 안정적인 타이밍이에요.",
+    color: "var(--tr-green)",
+    bg: "rgba(0,200,83,0.12)",
+  },
+  peak: {
+    key: "peak",
+    label: "정점 가까이",
+    short: "피크",
+    desc: "검색은 정점 가까이 왔고 SNS도 슬슬 둔화되는 중. 다른 각도가 필요해요.",
+    color: "var(--tr-yellow)",
+    bg: "rgba(255,179,0,0.14)",
+  },
+  declining: {
+    key: "declining",
+    label: "살짝 빠지는 중",
+    short: "쇠퇴",
+    desc: "검색이랑 SNS 둘 다 빠지고 있어요. 회고형이 아니면 굳이 안 해도 될 것 같아요.",
+    color: "var(--tr-red)",
+    bg: "rgba(255,59,48,0.12)",
+  },
+};
 
-// Admin: candidate keywords pending review
+// 기존 timing(red/yellow/green) → stage 매핑 (호환용)
+function stageFromTiming(timing, velocity) {
+  if (timing === "red") return "declining";
+  if (timing === "yellow") return "peak";
+  // green: 신선한 신호인지 안정 성장인지 velocity로 분기
+  const v = parseInt(String(velocity).replace(/[^0-9-]/g, ""), 10);
+  if (Number.isFinite(v) && v >= 80) return "early";
+  return "mainstream";
+}
+
+// ─── Categories (재정비 — 마케터 업종 필터링 친화) ─────────
+const CATEGORIES = ["전체", "푸드", "플레이스", "패션·뷰티", "라이프스타일", "밈·챌린지", "인물·콘텐츠"];
+
+// 기존 세부 카테고리(디저트/식당/편의점/음료/...) → 6개 대분류 매핑
+const CATEGORY_MAP = {
+  "디저트": "푸드",
+  "식당": "푸드",
+  "편의점": "푸드",
+  "음료": "푸드",
+  "음식": "푸드",
+  "카페": "푸드",
+};
+function mapCategory(c) { return CATEGORY_MAP[c] || c; }
+
+// ─── Candidates (Quick Add 직후, 자동 보강 진행 중인 트렌드) ──
 const CANDIDATES = [
   {
     id: "k001",
-    keyword: "녹차 크림 마들렌",
-    category: "디저트",
-    sources: { x: 14, insta: 73, naver: "+58%" },
-    firstSeen: "2시간 전",
-    confidence: 0.82,
+    title: "녹차 크림 마들렌",
+    category: "푸드",
+    discoverySource: { handle:"@bakery_pick", platform:"instagram", postUrl:"#" },
+    enrichmentStatus: { datalab:"done", naver:"done", youtube:"in_progress" },
+    stagePreview: "mainstream",
+    registeredAt: "2시간 전",
     note: "스타벅스 신상 + 개인 베이커리 다수 동시 출시",
   },
   {
     id: "k002",
-    keyword: "콜드브루 젤리",
-    category: "음료",
-    sources: { x: 8, insta: 41, naver: "+34%" },
-    firstSeen: "5시간 전",
-    confidence: 0.71,
-    note: "메가커피 시즈널, 4월 말 진입",
+    title: "콜드브루 젤리",
+    category: "푸드",
+    discoverySource: { handle:"@cafe_2025", platform:"instagram", postUrl:"#" },
+    enrichmentStatus: { datalab:"done", naver:"in_progress", youtube:"pending" },
+    stagePreview: "early",
+    registeredAt: "5시간 전",
+    note: "메가커피 시즈널",
   },
   {
     id: "k003",
-    keyword: "스타벅스 우베라떼",
-    category: "음료",
-    sources: { x: 22, insta: 0, naver: "+103%" },
-    firstSeen: "1시간 전",
-    confidence: 0.91,
+    title: "스타벅스 우베라떼",
+    category: "푸드",
+    discoverySource: { handle:"@food_seoul", platform:"instagram", postUrl:"#" },
+    enrichmentStatus: { datalab:"done", naver:"done", youtube:"done" },
+    stagePreview: "early",
+    registeredAt: "1시간 전",
     note: "5/20 출시 예정. 사전 노출 강함",
   },
   {
     id: "k004",
-    keyword: "에디션덴마크 푸딩",
-    category: "디저트",
-    sources: { x: 3, insta: 18, naver: "+12%" },
-    firstSeen: "1일 전",
-    confidence: 0.42,
-    note: "신호 약함 — 더 관찰 필요",
+    title: "Y2K 데님 자켓",
+    category: "패션·뷰티",
+    discoverySource: { handle:"@daily_outfit", platform:"tiktok", postUrl:"#" },
+    enrichmentStatus: { datalab:"in_progress", naver:"pending", youtube:"pending" },
+    stagePreview: "mainstream",
+    registeredAt: "1시간 전",
+    note: "K-아이돌 공항패션 영향",
   },
   {
     id: "k005",
-    keyword: "마라 떡볶이",
-    category: "식당",
-    sources: { x: 0, insta: 96, naver: "+8%" },
-    firstSeen: "6시간 전",
-    confidence: 0.55,
-    note: "X에서 안 잡힘 — 인스타 위주",
+    title: "9분 챌린지",
+    category: "밈·챌린지",
+    discoverySource: { handle:"@meme_kr", platform:"tiktok", postUrl:"#" },
+    enrichmentStatus: { datalab:"done", naver:"done", youtube:"in_progress" },
+    stagePreview: "early",
+    registeredAt: "3시간 전",
+    note: "음원 인기 → 챌린지 파생",
   },
   {
     id: "k006",
-    keyword: "솔티드 카라멜 빙수",
-    category: "디저트",
-    sources: { x: 17, insta: 52, naver: "+41%" },
-    firstSeen: "3시간 전",
-    confidence: 0.78,
-    note: "여름 시즌 진입 — 시기 좋음",
+    title: "한남동 도넛 팝업",
+    category: "플레이스",
+    discoverySource: { handle:"@seoul_popup", platform:"instagram", postUrl:"#" },
+    enrichmentStatus: { datalab:"done", naver:"done", youtube:"done" },
+    stagePreview: "mainstream",
+    registeredAt: "6시간 전",
+    note: "주말 줄 1.5시간",
   },
 ];
 
@@ -285,18 +489,61 @@ const ACCOUNTS = [
   { handle: "@menu_radar", trust: 2, freq: "12h", lastCheck: "—", category: "외식", enabled: false },
 ];
 
+// ─── Influencers (인플루언서 보드용 확장) ───────────────────
+const INFLUENCERS = [
+  // 푸드
+  { handle:"@food_seoul",    category:"푸드",         platform:"instagram", trust:5, followers:"312K", lastChecked:"12분 전",  contributedThisWeek:6, contributedAllTime:138, enabled:true,  note:"" },
+  { handle:"@dessert_log",   category:"푸드",         platform:"instagram", trust:4, followers:"189K", lastChecked:"28분 전",  contributedThisWeek:4, contributedAllTime:97,  enabled:true,  note:"" },
+  { handle:"@snack_kr",      category:"푸드",         platform:"instagram", trust:5, followers:"244K", lastChecked:"5분 전",   contributedThisWeek:3, contributedAllTime:121, enabled:true,  note:"" },
+  { handle:"@bakery_pick",   category:"푸드",         platform:"instagram", trust:4, followers:"98K",  lastChecked:"1시간 전", contributedThisWeek:2, contributedAllTime:68,  enabled:true,  note:"" },
+  { handle:"@cvs_news",      category:"푸드",         platform:"instagram", trust:4, followers:"152K", lastChecked:"3시간 전", contributedThisWeek:2, contributedAllTime:84,  enabled:true,  note:"" },
+  // 플레이스
+  { handle:"@seoul_popup",   category:"플레이스",     platform:"instagram", trust:4, followers:"176K", lastChecked:"40분 전",  contributedThisWeek:3, contributedAllTime:55,  enabled:true,  note:"" },
+  { handle:"@cafe_2025",     category:"플레이스",     platform:"instagram", trust:3, followers:"81K",  lastChecked:"8시간 전", contributedThisWeek:1, contributedAllTime:23,  enabled:true,  note:"" },
+  // 패션·뷰티
+  { handle:"@nail_diary",    category:"패션·뷰티",    platform:"instagram", trust:4, followers:"203K", lastChecked:"1시간 전", contributedThisWeek:3, contributedAllTime:71,  enabled:true,  note:"" },
+  { handle:"@daily_outfit",  category:"패션·뷰티",    platform:"tiktok",    trust:4, followers:"410K", lastChecked:"2시간 전", contributedThisWeek:2, contributedAllTime:62,  enabled:true,  note:"" },
+  // 라이프스타일
+  { handle:"@runcrew_kr",    category:"라이프스타일", platform:"instagram", trust:3, followers:"56K",  lastChecked:"4시간 전", contributedThisWeek:1, contributedAllTime:18,  enabled:true,  note:"" },
+  { handle:"@daily_routine", category:"라이프스타일", platform:"instagram", trust:3, followers:"73K",  lastChecked:"6시간 전", contributedThisWeek:1, contributedAllTime:22,  enabled:false, note:"비활성 의심" },
+  // 밈·챌린지
+  { handle:"@meme_kr",       category:"밈·챌린지",   platform:"tiktok",    trust:5, followers:"880K", lastChecked:"15분 전",  contributedThisWeek:5, contributedAllTime:142, enabled:true,  note:"" },
+  { handle:"@viral_kr",      category:"밈·챌린지",   platform:"instagram", trust:4, followers:"244K", lastChecked:"50분 전",  contributedThisWeek:3, contributedAllTime:88,  enabled:true,  note:"" },
+  // 인물·콘텐츠
+  { handle:"@idol_radar",    category:"인물·콘텐츠", platform:"instagram", trust:3, followers:"112K", lastChecked:"3시간 전", contributedThisWeek:2, contributedAllTime:45,  enabled:true,  note:"" },
+  { handle:"@drama_today",   category:"인물·콘텐츠", platform:"instagram", trust:3, followers:"95K",  lastChecked:"5시간 전", contributedThisWeek:1, contributedAllTime:34,  enabled:true,  note:"" },
+];
+
 const BLOCKLIST = [
   "광고", "협찬", "이벤트", "쿠폰", "신규가입", "1+1",
 ];
 
 const STATS = {
-  todayPublished: 8,
-  todayDraft: 3,
-  candidates: 6,
-  collectedX: 142,
+  todayInfluencerChecked:  3,
+  todayInfluencerTarget:   10,
+  todayDiscovered:         5,
+  todayDiscoveryTarget:    15,
+  pendingReview:           8,
+  enrichmentInProgress:    12,
+  todayPublished:          4,
+  stageDistribution: { early: 32, mainstream: 48, peak: 12, declining: 8 },
+  signalsToday: { instagram: 7, tiktok: 3 },
+  weekTopInfluencers: [
+    { handle:"@food_seoul", contributedThisWeek:6 },
+    { handle:"@meme_kr",    contributedThisWeek:5 },
+    { handle:"@dessert_log",contributedThisWeek:4 },
+  ],
+  apiUsage: {
+    datalab: { used:  230, limit:  1000 },
+    naver:   { used: 1240, limit: 25000 },
+    youtube: { used: 1200, limit: 10000 },
+  },
+  weekly: [4, 6, 5, 8, 7, 9, 8],
+  // 레거시 호환
+  todayDraft:     3,
+  candidates:     6,
+  collectedX:     142,
   collectedNaver: 24,
-  apiUsage: { used: 8420, limit: 15000 },
-  weekly: [4, 6, 5, 8, 7, 9, 8], // mon~sun
 };
 
 const DEFAULT_TREND_POINTS = [
@@ -536,4 +783,70 @@ CARDS.forEach((card, i) => {
   })();
 });
 
-window.TR_DATA = { CARDS, REALTIME, CATEGORIES, CANDIDATES, ACCOUNTS, BLOCKLIST, STATS };
+// ─── New identity fields (re-production focused) ──────────────
+CARDS.forEach((card, i) => {
+  card.macroCategory = mapCategory(card.category);
+  card.stage = stageFromTiming(card.timing, card.velocity);
+  card.stageMeta = STAGES[card.stage];
+  card.stageReason = (
+    card.stage === "early"      ? "데이터랩은 아직 잔잔한데 SNS 쪽이 먼저 움직이고 있어요. 선점 여지 있습니다." :
+    card.stage === "mainstream" ? "데이터랩이랑 SNS 둘 다 같이 오르는 중. 안정적인 타이밍이에요." :
+    card.stage === "peak"       ? "검색은 이미 정점 가까이 왔고 SNS도 슬슬 둔화되는 중. 다른 각도가 필요할 수 있어요." :
+                                  "검색이랑 SNS 둘 다 빠지고 있어요. 회고형 콘텐츠가 아니면 굳이 안 해도 될 것 같아요."
+  );
+
+  const seed = (i + 1) * 137;
+  const igCount = 120 + (seed % 480);
+  const ttCount = 30  + ((seed * 3) % 220);
+  const last24 = card.stage === "declining"
+    ? -((seed % 14) + 4)
+    :  ((seed % 38) + (card.stage === "early" ? 30 : card.stage === "mainstream" ? 18 : 8));
+  card.reproductionMetrics = {
+    instagramPosts: igCount,
+    tiktokVideos:   ttCount,
+    last24hNew:     last24,
+    last7dCount:    Math.round((igCount + ttCount) * 0.45),
+  };
+
+  const sourcePool = ["@food_seoul","@dessert_log","@snack_kr","@bakery_pick","@cvs_news","@chains_kr","@daiso_pick"];
+  card.discoverySource = {
+    handle:      sourcePool[i % sourcePool.length],
+    platform:    i % 2 === 0 ? "instagram" : "tiktok",
+    postUrl:     "#",
+    capturedAt:  card.publishedAt,
+  };
+
+  card.reproductionSamples = [0,1,2,3].map(k => {
+    const hue = (card.cover.hue + k * 17) % 360;
+    const sat = Math.max(40, Math.min(95, card.cover.sat - k * 4));
+    const lum = Math.max(40, Math.min(85, card.cover.lum + (k - 1) * 6));
+    return {
+      kind: "thumb",
+      hue, sat, lum,
+      author:   sourcePool[(i + k) % sourcePool.length],
+      platform: k % 2 === 0 ? "instagram" : "tiktok",
+      url: "#",
+    };
+  });
+
+  card.enrichment = {
+    cafeBlog: [
+      { source: "네이버 카페",  snippet: `${card.title} 직접 사봤는데 SNS에서 본 그대로네요`, link:"#", timeAgo:"4시간 전" },
+      { source: "네이버 블로그",snippet: `${card.title} 후기 — 사진보다 양이 진짜 많음`,        link:"#", timeAgo:"12시간 전" },
+      { source: "네이버 카페",  snippet: `${card.title} 다들 어디서 사세요?`,                   link:"#", timeAgo:"1일 전" },
+    ],
+    youtube: [
+      { title: `${card.title} 솔직 리뷰 3분`,      channel: "푸드로그",   views: "12만", thumbHue: card.cover.hue,              link:"#" },
+      { title: `${card.title} 먹어봄 #쇼츠`,        channel: "디저트탐험", views: "8.4만", thumbHue: (card.cover.hue + 30) % 360, link:"#" },
+      { title: `${card.title} vs 비슷한거 비교`,    channel: "스낵리뷰",   views: "5.1만", thumbHue: (card.cover.hue + 60) % 360, link:"#" },
+    ],
+  };
+});
+
+window.TR_DATA = {
+  CARDS, REALTIME,
+  CATEGORIES, CATEGORY_MAP, STAGES,
+  CANDIDATES, INFLUENCERS, ACCOUNTS,
+  BLOCKLIST, STATS,
+  stageFromTiming, mapCategory,
+};

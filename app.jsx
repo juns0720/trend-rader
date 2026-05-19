@@ -75,15 +75,37 @@ function parseHex(h) {
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [mode, setMode] = useStateApp("user"); // user | admin
+  const pathMode = () => window.location.pathname.startsWith("/admin") ? "admin" : "user";
+  const initialMode = pathMode();
+  const [mode, setModeState] = useStateApp(initialMode); // user | admin
   const [tab, setTab] = useStateApp("home"); // user nav
   const [adminTab, setAdminTab] = useStateApp("dash");
   const [detailId, setDetailId] = useStateApp(null);
   const [bookmarks, setBookmarks] = useStateApp(new Set(["c01", "c03", "c06"]));
   const [onboarding, setOnboarding] = useStateApp(t.showOnboarding);
+  const viewport = useViewportSizeApp();
+  const [frameParam, setFrameParam] = useStateApp(new URLSearchParams(window.location.search).get("frame"));
 
   useEffectApp(() => { window.TR_TWEAKS = t; }, [t]);
   useEffectApp(() => { setOnboarding(t.showOnboarding); }, [t.showOnboarding]);
+  useEffectApp(() => {
+    const syncModeFromPath = () => {
+      setModeState(pathMode());
+      setFrameParam(new URLSearchParams(window.location.search).get("frame"));
+    };
+    syncModeFromPath();
+    window.addEventListener("popstate", syncModeFromPath);
+    return () => window.removeEventListener("popstate", syncModeFromPath);
+  }, []);
+
+  const setMode = (nextMode) => {
+    setModeState(nextMode);
+    const nextPath = nextMode === "admin" ? "/admin" : "/";
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+    }
+    if (nextMode === "user") setDetailId(null);
+  };
 
   const toggleBookmark = (id) => {
     setBookmarks(prev => {
@@ -94,72 +116,181 @@ function App() {
   };
 
   const css = buildCSS(t);
+  const userLayoutMode = viewport.width >= 1024 ? "desktop" : viewport.width >= 768 ? "tablet" : "mobile";
+  const usePhoneFrame = mode === "user" && frameParam === "phone";
+  const effectiveUserLayout = usePhoneFrame ? "mobile" : userLayoutMode;
 
   let userScreen;
-  if (tab === "home") userScreen = <HomeScreen onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
-  else if (tab === "search") userScreen = <SearchScreen onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
-  else if (tab === "bookmarks") userScreen = <BookmarksScreen bookmarks={bookmarks} toggleBookmark={toggleBookmark} onCard={setDetailId} />;
-  else if (tab === "profile") userScreen = <ProfileScreen onAdmin={() => setMode("admin")} />;
+  if (tab === "home") userScreen = <HomeScreen layoutMode={effectiveUserLayout} onTab={setTab} onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
+  else if (tab === "search") userScreen = <SearchScreen layoutMode={effectiveUserLayout} onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
+  else if (tab === "bookmarks") userScreen = <BookmarksScreen layoutMode={effectiveUserLayout} bookmarks={bookmarks} toggleBookmark={toggleBookmark} onCard={setDetailId} />;
+  else if (tab === "profile") userScreen = <ProfileScreen layoutMode={effectiveUserLayout} onAdmin={() => setMode("admin")} />;
+
+  const [quickAddSource, setQuickAddSource] = React.useState(null);
+
+  const handleUseAsSource = (handle) => {
+    setQuickAddSource(handle);
+    setAdminTab("add");
+  };
 
   let adminScreen;
   if (adminTab === "dash") adminScreen = <AdminDashboard onTab={setAdminTab} />;
-  else if (adminTab === "cand") adminScreen = <AdminCandidates />;
-  else if (adminTab === "cards") adminScreen = <AdminCards />;
-  else if (adminTab === "accs") adminScreen = <AdminAccounts />;
+  else if (adminTab === "add") adminScreen = <AdminQuickAdd sourceHandle={quickAddSource} onClearSource={() => setQuickAddSource(null)} />;
+  else if (adminTab === "review") adminScreen = <AdminReview />;
+  else if (adminTab === "influencer") adminScreen = <AdminInfluencers onUseAsSource={handleUseAsSource} />;
 
   return (
     <React.Fragment>
       <style>{css}</style>
-      <FrameStage>
-        <div className="tr-screen" style={{
+      {mode === "admin" ? (
+        <AdminDesktopShell>
+          <div className="tr-screen" style={{
+            minHeight: "100vh",
+            background: "var(--tr-bg)", color: "var(--tr-fg)",
+            fontFamily: "var(--tr-font)",
+          }}>
+            <AdminTopBar tab={adminTab} onTab={setAdminTab} onExit={() => setMode("user")} />
+            {adminScreen}
+          </div>
+        </AdminDesktopShell>
+      ) : usePhoneFrame ? (
+        <FrameStage>
+          <div className="tr-screen" style={{
           width: "100%", height: "100%", position: "relative",
           background: "var(--tr-bg)", color: "var(--tr-fg)",
           fontFamily: "var(--tr-font)",
           overflow: "hidden",
-        }}>
-          {/* status bar */}
-          <StatusBar dark={!isLight(t.palette[1])} />
-
-          <div style={{
-            position: "absolute", top: 32, bottom: 0, left: 0, right: 0, overflow: "auto", scrollbarWidth: "none", msOverflowStyle: "none",
           }}>
-            {mode === "user" ? (
-              detailId ? (
+            {/* status bar */}
+            <StatusBar dark={!isLight(t.palette[1])} />
+
+            <div style={{
+              position: "absolute", top: 32, bottom: 0, left: 0, right: 0, overflow: "auto", scrollbarWidth: "none", msOverflowStyle: "none",
+            }}>
+              {detailId ? (
                 <CardDetail cardId={detailId} onBack={() => setDetailId(null)}
                             bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
-              ) : userScreen
-            ) : (
-              <React.Fragment>
-                <AdminTopBar tab={adminTab} onTab={setAdminTab} onExit={() => setMode("user")} />
-                {adminScreen}
-              </React.Fragment>
+              ) : userScreen}
+            </div>
+
+            {/* bottom nav (user mode only, hidden on detail) */}
+            {!detailId && (
+              <BottomNav tab={tab} onTab={setTab} />
             )}
-          </div>
 
-          {/* bottom nav (user mode only, hidden on detail) */}
-          {mode === "user" && !detailId && (
-            <BottomNav tab={tab} onTab={setTab} />
-          )}
-
-          {/* Home indicator */}
-          <div style={{
-            position: "absolute", bottom: 6, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none",
-          }}>
+            {/* Home indicator */}
             <div style={{
-              width: 130, height: 4, borderRadius: 100,
-              background: "var(--tr-fg)", opacity: 0.4,
-            }} />
-          </div>
+              position: "absolute", bottom: 6, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none",
+            }}>
+              <div style={{
+                width: 130, height: 4, borderRadius: 100,
+                background: "var(--tr-fg)", opacity: 0.4,
+              }} />
+            </div>
 
-          {/* Onboarding overlay */}
+            {/* Onboarding overlay */}
+            {onboarding && <Onboarding onDone={() => setOnboarding(false)} />}
+          </div>
+        </FrameStage>
+      ) : (
+        <UserResponsiveShell layoutMode={effectiveUserLayout}>
+          {effectiveUserLayout === "desktop" && !detailId && tab !== "home" && (
+            <DesktopUserNav tab={tab} onTab={setTab} />
+          )}
+          {detailId ? (
+            <div style={{
+              maxWidth: effectiveUserLayout === "desktop" ? 760 : 620,
+              margin: "0 auto",
+              minHeight: "100vh",
+            }}>
+              <CardDetail cardId={detailId} onBack={() => setDetailId(null)}
+                          bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
+            </div>
+          ) : userScreen}
+          {effectiveUserLayout !== "desktop" && !detailId && (
+            <BottomNav tab={tab} onTab={setTab} fixed />
+          )}
           {onboarding && <Onboarding onDone={() => setOnboarding(false)} />}
-        </div>
-      </FrameStage>
+        </UserResponsiveShell>
+      )}
 
       <TweaksUI t={t} setTweak={setTweak} mode={mode} setMode={setMode} setTab={setTab}
                 setAdminTab={setAdminTab} setOnboarding={setOnboarding}
                 setDetailId={setDetailId} />
     </React.Fragment>
+  );
+}
+
+function DesktopUserNav({ tab, onTab }) {
+  const tabs = [
+    { k: "home", label: "홈" },
+    { k: "search", label: "검색" },
+    { k: "bookmarks", label: "북마크" },
+    { k: "profile", label: "설정" },
+  ];
+  return (
+    <div style={{
+      position: "sticky", top: 0, zIndex: 20,
+      background: "var(--tr-bg)", borderBottom: "1px solid var(--tr-line)",
+      padding: "14px 28px",
+    }}>
+      <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ marginRight: 14, fontSize: 15, fontWeight: 900, letterSpacing: "-0.03em" }}>Trend Radar</div>
+        {tabs.map(item => (
+          <button key={item.k} onClick={() => onTab(item.k)} style={{
+            padding: "8px 12px", border: 0, borderRadius: 100,
+            background: tab === item.k ? "var(--tr-fg)" : "var(--tr-card-2)",
+            color: tab === item.k ? "var(--tr-bg)" : "var(--tr-fg)",
+            cursor: "pointer", fontSize: 13, fontWeight: 800,
+          }}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function useViewportSizeApp() {
+  const [size, setSize] = useStateApp({ width: window.innerWidth, height: window.innerHeight });
+  useEffectApp(() => {
+    const onResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return size;
+}
+
+function AdminDesktopShell({ children }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0,
+      background: "var(--tr-bg)", color: "var(--tr-fg)",
+      overflow: "auto",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function UserResponsiveShell({ layoutMode, children }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0,
+      background: "var(--tr-bg)", color: "var(--tr-fg)",
+      fontFamily: "var(--tr-font)",
+      overflow: "auto",
+    }}>
+      <div className="tr-screen" style={{
+        minHeight: "100vh",
+        position: "relative",
+        background: "var(--tr-bg)",
+        color: "var(--tr-fg)",
+        paddingBottom: layoutMode === "desktop" ? 0 : 84,
+      }}>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -250,9 +381,9 @@ function TweaksUI({ t, setTweak, mode, setMode, setTab, setAdminTab, setOnboardi
         <TweakSelect label="운영자 화면" value={"current"}
                      options={[
                        { value: "dash", label: "대시보드" },
-                       { value: "cand", label: "후보 키워드" },
-                       { value: "cards", label: "카드 편집" },
-                       { value: "accs", label: "X 계정 / 블록리스트" },
+                       { value: "add", label: "등록" },
+                       { value: "review", label: "검수" },
+                       { value: "influencer", label: "인플루언서" },
                      ]}
                      onChange={(v) => setAdminTab(v)} />
       )}
