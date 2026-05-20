@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Spicy noodle recipe and global food trend">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB25B"/>
+      <stop offset="0.46" stop-color="#F04438"/>
+      <stop offset="1" stop-color="#6B1111"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#4B0B0B" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <path d="M0 552 C180 474 300 604 463 512 C637 415 788 552 944 451 C1070 370 1150 403 1200 358 L1200 675 L0 675 Z" fill="#4B0B0B" opacity="0.2"/>
+  <g filter="url(#shadow)">
+    <ellipse cx="562" cy="457" rx="298" ry="86" fill="#4B0B0B" opacity="0.24"/>
+    <path d="M278 313 H846 C823 466 719 540 562 540 C405 540 301 466 278 313 Z" fill="#F8FAFC"/>
+    <path d="M326 324 C385 285 452 360 520 318 C586 278 656 357 725 316 C772 288 813 294 844 313" fill="none" stroke="#F59E0B" stroke-width="28" stroke-linecap="round"/>
+    <path d="M358 375 C425 336 483 411 550 371 C613 332 669 405 736 367" fill="none" stroke="#F59E0B" stroke-width="22" stroke-linecap="round"/>
+    <circle cx="422" cy="394" r="28" fill="#EF4444"/>
+    <circle cx="667" cy="397" r="24" fill="#EF4444"/>
+  </g>
+  <g transform="translate(760 94)" filter="url(#shadow)">
+    <path d="M167 0 C117 65 172 107 119 164 C74 212 102 291 184 305 C269 318 325 264 306 194 C292 144 237 139 248 77 C220 102 191 95 167 0 Z" fill="#FACC15"/>
+    <path d="M176 97 C157 142 202 159 170 203 C150 230 169 264 207 264 C246 264 268 236 255 204 C244 179 218 178 221 143 C204 158 190 144 176 97 Z" fill="#EF4444"/>
+  </g>
+  <g transform="translate(138 118)" fill="none" stroke="#FFF7ED" stroke-width="9" opacity="0.78">
+    <circle cx="92" cy="92" r="78"/>
+    <path d="M14 92 H170"/>
+    <path d="M92 14 C62 57 62 127 92 170"/>
+    <path d="M92 14 C122 57 122 127 92 170"/>
+  </g>
+</svg>

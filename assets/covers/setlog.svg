@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Split-screen short-form daily vlog">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67C8FF"/>
+      <stop offset="0.55" stop-color="#2683D6"/>
+      <stop offset="1" stop-color="#0D3D7A"/>
+    </linearGradient>
+    <linearGradient id="phone" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8F3FF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#062B52" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <path d="M0 545 C170 475 260 620 420 555 C600 482 725 548 882 475 C1030 406 1138 455 1200 422 L1200 675 L0 675 Z" fill="#062B52" opacity="0.18"/>
+  <g filter="url(#shadow)">
+    <rect x="305" y="68" width="590" height="540" rx="52" fill="url(#phone)"/>
+    <rect x="333" y="103" width="534" height="470" rx="32" fill="#111827"/>
+    <line x1="600" y1="103" x2="600" y2="573" stroke="#FFFFFF" stroke-width="10" opacity="0.78"/>
+    <line x1="333" y1="338" x2="867" y2="338" stroke="#FFFFFF" stroke-width="10" opacity="0.78"/>
+    <rect x="348" y="118" width="237" height="205" rx="18" fill="#F6D08E"/>
+    <rect x="615" y="118" width="237" height="205" rx="18" fill="#8BD3C7"/>
+    <rect x="348" y="353" width="237" height="205" rx="18" fill="#C9B6FF"/>
+    <rect x="615" y="353" width="237" height="205" rx="18" fill="#FF9F92"/>
+    <path d="M390 268 C430 220 490 226 540 272" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.75"/>
+    <rect x="652" y="166" width="156" height="98" rx="18" fill="#FFFFFF" opacity="0.72"/>
+    <path d="M394 493 L457 407 L523 493 Z" fill="#FFFFFF" opacity="0.70"/>
+    <circle cx="722" cy="457" r="52" fill="#FFFFFF" opacity="0.72"/>
+  </g>
+  <g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity="0.55">
+    <path d="M165 202 C222 153 274 154 324 197"/>
+    <path d="M888 168 C954 124 1021 137 1070 199"/>
+    <path d="M150 416 C211 459 267 452 323 406"/>
+  </g>
+</svg>

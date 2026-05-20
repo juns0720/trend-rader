@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Hip-hop issue with microphones and online debate">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8A4B"/>
+      <stop offset="0.52" stop-color="#C43728"/>
+      <stop offset="1" stop-color="#421116"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#2D0A0D" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <path d="M0 548 C178 497 292 622 468 520 C640 420 754 530 925 442 C1060 373 1137 407 1200 369 L1200 675 L0 675 Z" fill="#2D0A0D" opacity="0.22"/>
+  <g filter="url(#shadow)">
+    <g transform="translate(235 126) rotate(-12 160 220)">
+      <rect x="126" y="84" width="116" height="230" rx="58" fill="#171923"/>
+      <rect x="154" y="312" width="60" height="178" rx="30" fill="#171923"/>
+      <path d="M116 198 H253" stroke="#F9FAFB" stroke-width="16" stroke-linecap="round" opacity="0.75"/>
+      <path d="M132 146 H237" stroke="#F9FAFB" stroke-width="12" stroke-linecap="round" opacity="0.6"/>
+    </g>
+    <g transform="translate(685 118) rotate(13 160 220)">
+      <rect x="126" y="84" width="116" height="230" rx="58" fill="#171923"/>
+      <rect x="154" y="312" width="60" height="178" rx="30" fill="#171923"/>
+      <path d="M116 198 H253" stroke="#F9FAFB" stroke-width="16" stroke-linecap="round" opacity="0.75"/>
+      <path d="M132 146 H237" stroke="#F9FAFB" stroke-width="12" stroke-linecap="round" opacity="0.6"/>
+    </g>
+  </g>
+  <g fill="none" stroke="#FFE6D7" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.88">
+    <path d="M323 435 C393 365 435 516 503 444 C566 378 610 514 671 439 C738 357 781 502 858 422"/>
+  </g>
+  <g fill="#FFFFFF" opacity="0.9">
+    <rect x="113" y="105" width="250" height="96" rx="34"/>
+    <path d="M174 200 L139 244 L245 207 Z"/>
+    <rect x="829" y="445" width="260" height="100" rx="36"/>
+    <path d="M1012 542 L1070 593 L1037 535 Z"/>
+  </g>
+  <g fill="#171923">
+    <rect x="164" y="145" width="148" height="16" rx="8"/>
+    <rect x="880" y="486" width="160" height="16" rx="8"/>
+  </g>
+</svg>

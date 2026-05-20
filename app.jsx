@@ -49,6 +49,86 @@ function buildCSS(t) {
       --tr-font: '${t.font}', -apple-system, system-ui, sans-serif;
     }
     .tr-screen, .tr-screen * { font-family: var(--tr-font) !important; }
+    .tr-screen, .tr-admin-shell {
+      transition: background-color .24s ease, color .24s ease;
+    }
+    .tr-screen button,
+    .tr-screen input,
+    .tr-screen textarea,
+    .tr-screen select,
+    .tr-screen [role="button"],
+    .tr-admin-shell button,
+    .tr-admin-shell input,
+    .tr-admin-shell textarea,
+    .tr-admin-shell select,
+    .tr-admin-shell [role="button"] {
+      transition:
+        background-color .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease,
+        color .2s ease,
+        opacity .2s ease,
+        filter .2s ease,
+        transform .2s ease;
+    }
+    .tr-screen button:active,
+    .tr-admin-shell button:active {
+      transform: scale(.985);
+    }
+    .tr-motion-view {
+      animation: tr-view-in .26s cubic-bezier(.2,.8,.2,1) both;
+      will-change: opacity, transform, filter;
+    }
+    .tr-motion-view[data-motion-kind="detail"] {
+      animation-name: tr-detail-in;
+      animation-duration: .3s;
+    }
+    .tr-motion-view[data-motion-kind="admin"] {
+      animation-duration: .22s;
+    }
+    .tr-overlay-motion {
+      animation: tr-overlay-in .2s ease both;
+    }
+    .tr-comments-backdrop {
+      animation: tr-comments-backdrop-in .18s ease both;
+    }
+    .tr-comments-drawer {
+      animation: tr-comments-drawer-in .28s cubic-bezier(.2,.8,.2,1) both;
+      will-change: transform, opacity;
+    }
+    @keyframes tr-view-in {
+      from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.992); filter: blur(3px); }
+      to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+    }
+    @keyframes tr-detail-in {
+      from { opacity: 0; transform: translate3d(0, 16px, 0) scale(.985); filter: blur(4px); }
+      to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+    }
+    @keyframes tr-overlay-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes tr-comments-backdrop-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes tr-comments-drawer-in {
+      from { opacity: 0; transform: translate3d(0, 105%, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tr-motion-view,
+      .tr-overlay-motion,
+      .tr-comments-backdrop,
+      .tr-comments-drawer {
+        animation: none !important;
+      }
+      .tr-screen *,
+      .tr-admin-shell * {
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   `;
 }
 
@@ -101,6 +181,13 @@ function App() {
     window.addEventListener("popstate", syncModeFromPath);
     return () => window.removeEventListener("popstate", syncModeFromPath);
   }, []);
+  useEffectApp(() => {
+    if (mode !== "user") return;
+    requestAnimationFrame(() => {
+      const shell = document.querySelector("[data-tr-user-shell]");
+      if (shell) shell.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  }, [mode, tab, detailId, frameParam]);
 
   const setMode = (nextMode) => {
     setModeState(nextMode);
@@ -126,10 +213,11 @@ function App() {
   const css = buildCSS(t);
   const userLayoutMode = viewport.width >= 1024 ? "desktop" : viewport.width >= 768 ? "tablet" : "mobile";
   const usePhoneFrame = mode === "user" && frameParam === "phone";
-  const effectiveUserLayout = usePhoneFrame ? "mobile" : userLayoutMode;
+  const useDesktopFrame = mode === "user" && frameParam === "desktop";
+  const effectiveUserLayout = usePhoneFrame ? "mobile" : useDesktopFrame ? "desktop" : userLayoutMode;
 
   let userScreen;
-  if (tab === "home") userScreen = <HomeScreen layoutMode={effectiveUserLayout} onTab={setTab} onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
+  if (tab === "home") userScreen = <HomeScreen layoutMode={effectiveUserLayout} onTab={setTab} onCard={setDetailId} />;
   else if (tab === "shorts") userScreen = <ShortsScreen layoutMode={effectiveUserLayout} onCard={setDetailId} />;
   else if (tab === "search") userScreen = <SearchScreen layoutMode={effectiveUserLayout} onCard={setDetailId} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />;
   else if (tab === "bookmarks") userScreen = <BookmarksScreen layoutMode={effectiveUserLayout} bookmarks={bookmarks} toggleBookmark={toggleBookmark} onCard={setDetailId} />;
@@ -148,6 +236,14 @@ function App() {
   else if (adminTab === "review") adminScreen = <AdminCandidateReview searchQuery={adminSearch} />;
   else if (adminTab === "sources") adminScreen = <AdminSources onUseAsSource={handleUseAsSource} searchQuery={adminSearch} />;
 
+  const userViewKey = detailId ? `detail-${detailId}` : `tab-${tab}`;
+  const userViewMotion = detailId ? "detail" : "screen";
+  const userViewStyle = !detailId && tab === "shorts" && effectiveUserLayout !== "desktop" ? { height: "100%" } : undefined;
+  const handleDesktopNavTab = (nextTab) => {
+    setDetailId(null);
+    setTab(nextTab);
+  };
+
   return (
     <React.Fragment>
       <style>{css}</style>
@@ -160,7 +256,9 @@ function App() {
             searchQuery={adminSearch}
             onSearchChange={setAdminSearch}
           >
-            {adminScreen}
+            <AnimatedView key={`admin-${adminTab}`} motion="admin" style={{ minHeight: "100%" }}>
+              {adminScreen}
+            </AnimatedView>
           </AdminShell>
         </AdminDesktopShell>
       ) : usePhoneFrame ? (
@@ -174,13 +272,18 @@ function App() {
             {/* status bar */}
             <StatusBar dark={!isLight(t.palette[1])} />
 
-            <div style={{
-              position: "absolute", top: 32, bottom: 0, left: 0, right: 0, overflow: "auto", scrollbarWidth: "none", msOverflowStyle: "none",
+            <div data-tr-user-shell style={{
+              position: "absolute", top: 32, bottom: 0, left: 0, right: 0,
+              overflow: !detailId && tab === "shorts" ? "hidden" : "auto",
+              scrollbarWidth: "none", msOverflowStyle: "none",
             }}>
-              {detailId ? (
-                <CardDetail cardId={detailId} onBack={() => setDetailId(null)}
-                            bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
-              ) : userScreen}
+              <AnimatedView key={`phone-${userViewKey}`} motion={userViewMotion} style={userViewStyle}>
+                {detailId ? (
+                  <CardDetail cardId={detailId} onBack={() => setDetailId(null)}
+                              bookmarks={bookmarks} toggleBookmark={toggleBookmark}
+                              layoutMode="mobile" />
+                ) : userScreen}
+              </AnimatedView>
             </div>
 
             {/* bottom nav (user mode only, hidden on detail) */}
@@ -199,28 +302,32 @@ function App() {
             </div>
 
             {/* Onboarding overlay */}
-            {onboarding && <Onboarding onDone={() => setOnboarding(false)} />}
+            {onboarding && <div className="tr-overlay-motion"><Onboarding onDone={() => setOnboarding(false)} /></div>}
           </div>
         </FrameStage>
       ) : (
-        <UserResponsiveShell layoutMode={effectiveUserLayout}>
-          {effectiveUserLayout === "desktop" && !detailId && tab !== "home" && (
-            <DesktopUserNav tab={tab} onTab={setTab} />
+        <UserResponsiveShell layoutMode={effectiveUserLayout} lockViewport={!detailId && tab === "shorts" && effectiveUserLayout !== "desktop"}>
+          {effectiveUserLayout === "desktop" && (
+            <DesktopUserNav tab={tab} onTab={handleDesktopNavTab} />
           )}
-          {detailId ? (
-            <div style={{
-              maxWidth: effectiveUserLayout === "desktop" ? 760 : 620,
-              margin: "0 auto",
-              minHeight: "100vh",
-            }}>
-              <CardDetail cardId={detailId} onBack={() => setDetailId(null)}
-                          bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
-            </div>
-          ) : userScreen}
+          <AnimatedView key={`responsive-${userViewKey}`} motion={userViewMotion} style={userViewStyle}>
+            {detailId ? (
+              <div style={{
+                maxWidth: effectiveUserLayout === "desktop" ? "none" : 620,
+                width: "100%",
+                margin: "0 auto",
+                minHeight: "100vh",
+              }}>
+                <CardDetail cardId={detailId} onBack={() => setDetailId(null)}
+                            bookmarks={bookmarks} toggleBookmark={toggleBookmark}
+                            layoutMode={effectiveUserLayout} />
+              </div>
+            ) : userScreen}
+          </AnimatedView>
           {effectiveUserLayout !== "desktop" && !detailId && (
             <BottomNav tab={tab} onTab={setTab} fixed />
           )}
-          {onboarding && <Onboarding onDone={() => setOnboarding(false)} />}
+          {onboarding && <div className="tr-overlay-motion"><Onboarding onDone={() => setOnboarding(false)} /></div>}
         </UserResponsiveShell>
       )}
 
@@ -231,6 +338,14 @@ function App() {
   );
 }
 
+function AnimatedView({ motion = "screen", style, children }) {
+  return (
+    <div className="tr-motion-view" data-motion-kind={motion} style={style}>
+      {children}
+    </div>
+  );
+}
+
 function DesktopUserNav({ tab, onTab }) {
   return (
     <div style={{
@@ -238,22 +353,31 @@ function DesktopUserNav({ tab, onTab }) {
       background: "#FFFFFF",
       color: "#111318",
       borderBottom: "1px solid #E4E7EF",
-      padding: "0 28px",
     }}>
-      <div style={{ maxWidth: 1320, height: 74, margin: "0 auto", display: "flex", alignItems: "center", gap: 26 }}>
+      <div style={{
+        maxWidth: 1320,
+        width: "100%",
+        boxSizing: "border-box",
+        height: 84,
+        margin: "0 auto",
+        padding: "0 28px",
+        display: "flex",
+        alignItems: "center",
+        gap: 28,
+      }}>
         <button onClick={() => onTab("home")} style={{
-          marginRight: 8,
           border: 0,
           background: "transparent",
           color: "#111318",
           cursor: "pointer",
-          fontSize: 24,
-          fontWeight: 950,
-          letterSpacing: "-0.07em",
           padding: 0,
+          fontSize: 30,
+          fontFamily: "'Space Grotesk', 'Pretendard', sans-serif",
+          fontWeight: 950,
+          letterSpacing: "-0.075em",
         }}>Trend Radar</button>
         <button onClick={() => onTab("home")} style={{
-          height: 74,
+          height: 84,
           border: 0,
           borderBottom: tab === "home" ? "2px solid #4353FF" : "2px solid transparent",
           background: "transparent",
@@ -265,7 +389,7 @@ function DesktopUserNav({ tab, onTab }) {
           트렌드 레터
         </button>
         <button onClick={() => onTab("search")} style={{
-          height: 74,
+          height: 84,
           border: 0,
           borderBottom: tab === "search" ? "2px solid #4353FF" : "2px solid transparent",
           background: "transparent",
@@ -276,31 +400,32 @@ function DesktopUserNav({ tab, onTab }) {
         }}>
           탐색하기
         </button>
-        <button onClick={() => onTab("profile")} style={{
-          marginLeft: "auto",
-          border: 0,
-          background: "#4353FF",
-          color: "#fff",
-          borderRadius: 0,
-          padding: "8px 13px",
-          cursor: "pointer",
-          fontSize: 12.5,
-          fontWeight: 950,
-        }}>
-          구독하기
-        </button>
-        <button onClick={() => onTab("profile")} style={{
-          border: "1px solid #111318",
-          background: "transparent",
-          color: "#111318",
-          borderRadius: 0,
-          padding: "7px 12px",
-          cursor: "pointer",
-          fontSize: 12.5,
-          fontWeight: 950,
-        }}>
-          마이페이지
-        </button>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => onTab("profile")} style={{
+            border: 0,
+            background: "#4353FF",
+            color: "#fff",
+            borderRadius: 0,
+            padding: "8px 13px",
+            cursor: "pointer",
+            fontSize: 12.5,
+            fontWeight: 950,
+          }}>
+            구독하기
+          </button>
+          <button onClick={() => onTab("profile")} style={{
+            border: "1px solid #111318",
+            background: "#FFFFFF",
+            color: "#111318",
+            borderRadius: 0,
+            padding: "7px 10px",
+            cursor: "pointer",
+            fontSize: 12.5,
+            fontWeight: 950,
+          }}>
+            마이페이지
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -328,16 +453,17 @@ function AdminDesktopShell({ children }) {
   );
 }
 
-function UserResponsiveShell({ layoutMode, children }) {
+function UserResponsiveShell({ layoutMode, lockViewport = false, children }) {
   return (
-    <div style={{
+    <div data-tr-user-shell style={{
       position: "fixed", inset: 0,
       background: "var(--tr-bg)", color: "var(--tr-fg)",
       fontFamily: "var(--tr-font)",
-      overflow: "auto",
+      overflow: lockViewport ? "hidden" : "auto",
     }}>
       <div className="tr-screen" style={{
         minHeight: "100vh",
+        height: lockViewport ? "100vh" : "auto",
         position: "relative",
         background: "var(--tr-bg)",
         color: "var(--tr-fg)",

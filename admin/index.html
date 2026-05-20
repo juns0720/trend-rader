@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>트렌드 레이더 — MVP</title>
+  <base href="/">
+  <title>Trend Radar — Admin</title>
 
   <!-- Fonts: Pretendard / SUIT / Wanted Sans / Space Grotesk -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +19,6 @@
     html,body,#root{margin:0;padding:0;height:100%;background:#171717;font-family:Pretendard,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
     body{overflow:hidden}
 
-    /* Background dot grid behind the phone */
     body::before{
       content:""; position:fixed; inset:0; z-index:0;
       background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
@@ -57,14 +57,6 @@
       0%, 100% { box-shadow: 0 0 0 3px rgba(200,255,61,0.22), 0 0 10px rgba(200,255,61,0.5); }
       50%       { box-shadow: 0 0 0 5px rgba(200,255,61,0.12), 0 0 22px rgba(200,255,61,0.75); }
     }
-    @keyframes tr-vote-rise {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes tr-vote-fill {
-      from { transform: scaleX(0.08); }
-      to   { transform: scaleX(1); }
-    }
   </style>
 </head>
 <body>
@@ -74,22 +66,11 @@
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-  <script src="data.js?v=20260520-stage-colors"></script>
-  <script type="text/babel" src="tweaks-panel.jsx?v=20260520-stage-colors"></script>
-  <script type="text/babel" src="icons.jsx?v=20260520-stage-colors"></script>
-  <script type="text/babel" src="user.jsx?v=20260520-stage-colors"></script>
-  <script type="text/babel" src="admin.jsx?v=20260520-stage-colors"></script>
-  <script type="text/babel" src="app.jsx?v=20260520-stage-colors"></script>
-
-  <template id="__bundler_thumbnail">
-    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <rect width="200" height="200" fill="#0a0a0a"/>
-      <circle cx="100" cy="100" r="56" fill="none" stroke="#C8FF3D" stroke-width="3"/>
-      <circle cx="100" cy="100" r="34" fill="none" stroke="#C8FF3D" stroke-width="3" opacity="0.7"/>
-      <circle cx="100" cy="100" r="14" fill="none" stroke="#C8FF3D" stroke-width="3" opacity="0.5"/>
-      <line x1="100" y1="100" x2="142" y2="58" stroke="#C8FF3D" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="142" cy="58" r="5" fill="#C8FF3D"/>
-    </svg>
-  </template>
+  <script src="data.js?v=20260518-community-panel"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="user.jsx?v=20260518-community-panel"></script>
+  <script type="text/babel" src="admin.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
 </body>
 </html>
